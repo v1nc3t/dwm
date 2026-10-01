@@ -131,6 +131,7 @@ struct Monitor {
 	Monitor *next;
 	Window barwin;
 	const Layout *lt[2];
+	float *tagmfact;      /* master width per tag; [0] is a mixed view */
 };
 
 typedef struct {
@@ -532,6 +533,7 @@ cleanupmon(Monitor *mon)
 	}
 	XUnmapWindow(dpy, mon->barwin);
 	XDestroyWindow(dpy, mon->barwin);
+	free(mon->tagmfact);
 	free(mon);
 }
 
@@ -653,14 +655,29 @@ configurerequest(XEvent *e)
 	XSync(dpy, False);
 }
 
+static int
+mfacttag(Monitor *m)
+{
+	unsigned int i, ts = m->tagset[m->seltags];
+
+	for (i = 0; i < LENGTH(tags); i++)
+		if (ts == 1 << i)
+			return i + 1;
+	return 0;
+}
+
 Monitor *
 createmon(void)
 {
 	Monitor *m;
+	unsigned int i;
 
 	m = ecalloc(1, sizeof(Monitor));
 	m->tagset[0] = m->tagset[1] = 1;
 	m->mfact = mfact;
+	m->tagmfact = ecalloc(LENGTH(tags) + 1, sizeof(float));
+	for (i = 0; i <= LENGTH(tags); i++)
+		m->tagmfact[i] = mfact;
 	m->nmaster = nmaster;
 	m->showbar = showbar;
 	m->topbar = topbar;
@@ -1591,7 +1608,7 @@ setmfact(const Arg *arg)
 	f = arg->f < 1.0 ? arg->f + selmon->mfact : arg->f - 1.0;
 	if (f < 0.05 || f > 0.95)
 		return;
-	selmon->mfact = f;
+	selmon->mfact = selmon->tagmfact[mfacttag(selmon)] = f;
 	arrange(selmon);
 }
 
@@ -1840,6 +1857,7 @@ toggleview(const Arg *arg)
 
 	if (newtagset) {
 		selmon->tagset[selmon->seltags] = newtagset;
+		selmon->mfact = selmon->tagmfact[mfacttag(selmon)];
 		focus(NULL);
 		arrange(selmon);
 	}
@@ -2155,6 +2173,7 @@ view(const Arg *arg)
 	selmon->seltags ^= 1; /* toggle sel tagset */
 	if (arg->ui & TAGMASK)
 		selmon->tagset[selmon->seltags] = arg->ui & TAGMASK;
+	selmon->mfact = selmon->tagmfact[mfacttag(selmon)];
 	focus(NULL);
 	arrange(selmon);
 }
