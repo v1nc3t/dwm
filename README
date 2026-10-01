@@ -1,48 +1,88 @@
-dwm - dynamic window manager
-============================
-dwm is an extremely fast, small, and dynamic window manager for X.
+# dwm
 
+Personal build of [dwm](https://dwm.suckless.org/) 6.8, a small dynamic window manager for X.
 
-Requirements
-------------
-In order to build dwm you need the Xlib header files.
+This tree was copied from the upstream repository, [git.suckless.org/dwm](https://git.suckless.org/dwm). dwm was created by [Anselm R. Garbe](https://garbe.ca/). It is maintained by the [suckless](https://suckless.org/) community, currently by Hiltjo Posthuma. The original code stays under the MIT/X license in `LICENSE`. Thank you for making a window manager that is small enough to read and change.
 
+The status bar uses [slstatus](https://tools.suckless.org/slstatus/), also from suckless: [git.suckless.org/slstatus](https://git.suckless.org/slstatus).
 
-Installation
-------------
-Edit config.mk to match your local setup (dwm is installed into
-the /usr/local namespace by default).
+## What this build adds
 
-Afterwards enter the following command to build and install dwm (if
-necessary as root):
+- Super is the modifier. Alt is only used to launch programs.
+- Terminal is qterminal. Super+c opens rofi with the Gruvbox theme.
+- Window borders are Gruvbox. The bar stays the original dwm gray, and the selected workspace stays blue. The window title on the bar stays gray.
+- Tiled windows fill the space (`resizehints = 0`).
+- Super+Left and Super+Right move between workspaces. Super+q closes a window.
+- The bar is drawn by a local slstatus build. From left to right on the right side: mic, volume, brightness, CPU, RAM, network, battery, date and time.
+- Scroll the volume or brightness fields to change them. Click the mic to mute it. Click CPU or RAM to open btop. Click the network name to open nmtui.
+- Redshift starts with dwm at 4000K.
+- Media keys are bound for mute, volume, mic, and brightness. `fn-media.sh` turns on the Lenovo Fn lock so those keys work without holding Fn.
+- Full key list: `shortcuts.txt`.
 
-    make clean install
+## Requirements
 
+- X11 headers and libraries, including Xinerama and Xft (`libx11-dev`, `libxinerama-dev`, `libxft-dev`, `libfontconfig-dev`)
+- A C compiler and make
+- qterminal, rofi, maim, xclip
+- PipeWire (`wpctl`), brightnessctl, NetworkManager (`nmtui`, `iw`)
+- btop, redshift
+- JetBrainsMono Nerd Font, so the bar icons render
+- slstatus 1.1, built separately (see below)
 
-Running dwm
------------
-Add the following line to your .xinitrc to start dwm using startx:
+The launch keys also expect Firefox, Thunar, Discord, VS Code (`code`), Spotify, and Obsidian. Missing ones only affect that key.
 
-    exec dwm
+## Install
 
-In order to connect dwm to a specific display, make sure that
-the DISPLAY environment variable is set correctly, e.g.:
+```sh
+cd ~/.config/dwm
+rm -f config.h
+make
+```
 
-    DISPLAY=foo.bar:1 exec dwm
+`make` copies `config.def.h` to `config.h` only when `config.h` is missing, then builds `./dwm`.
 
-(This will start dwm on display :1 of the host foo.bar.)
+This machine does not install over `/usr/bin/dwm`. The login entry runs `dwm`, and `~/.local/bin` is first on the session path, so `~/.local/bin/dwm` starts this build:
 
-In order to display status info in the bar, you can do something
-like this in your .xinitrc:
+```sh
+#!/bin/sh
+exec "$HOME/.config/dwm/dwm" "$@"
+```
 
-    while xsetroot -name "`date` `uptime | sed 's/.*,//'`"
-    do
-    	sleep 1
-    done &
-    exec dwm
+Log out and choose the dwm session. dwm does not reload a running binary.
 
+Build slstatus the same way, from its own tree (here, `~/.config/slstatus`). The path in `statusscript` inside `config.def.h` must point at that binary. dwm starts it, and starts redshift, when the session begins.
 
-Configuration
--------------
-The configuration of dwm is done by creating a custom config.h
-and (re)compiling the source code.
+On this Lenovo, media keys need the Fn lock once:
+
+```sh
+sudo ~/.config/dwm/fn-media.sh
+```
+
+## Change the config
+
+Edit `config.def.h`, not `config.h`. `config.h` is generated.
+
+```sh
+make clean
+make
+```
+
+Then log out and back in. Keys, colors, clicks, and anything started from `dwm.c` only apply in the new process.
+
+| Change | Where |
+| --- | --- |
+| Keys, programs, colors, bar click commands | `config.def.h` |
+| Bar text, icons, order, refresh | slstatus `config.def.h` |
+| How the bar is drawn and clicked | `drawstatus()` and `buttonpress()` in `dwm.c` |
+
+The bar fields and `statusclicks` must stay in the same order: mic, volume, brightness, CPU, RAM, network, battery, date and time. A field separator is the byte `0x1f`.
+
+Colors:
+
+- `SchemeNorm` and `SchemeSel` are the windows (Gruvbox).
+- `SchemeBarNorm` and `SchemeBarSel` are the bar background and the selected tag.
+- The later schemes color one status item each. Mic and volume turn red while muted.
+
+## License
+
+MIT/X Consortium. See `LICENSE`. Upstream copyright remains with the suckless authors.
