@@ -98,15 +98,28 @@ static const char *netclick[] = { "qterminal", "-e", "nmtui", NULL };
 static const char *statusscript[] = { "/bin/sh", "-c", "killall -q slstatus; exec /home/vincent/.config/slstatus/slstatus", NULL };
 static const char *redshiftcmd[] = { "redshift", "-O", "4000", NULL };
 
-/* same order as slstatus: mic, vol, brightness, cpu, ram, network, battery, date/time */
+/* same order as slstatus: mic, vol, brightness, cpu, ram, network, down, up, battery, date/time */
 static const char **statusclicks[] = {
-	miccmd, NULL, NULL, cpuclick, cpuclick, netclick, NULL, NULL,
+	miccmd, NULL, NULL, cpuclick, cpuclick, netclick, NULL, NULL, NULL, NULL,
 };
 static const char **statusscrollup[] = {
-	NULL, volupcmd, brightupcmd, NULL, NULL, NULL, NULL, NULL,
+	NULL, volupcmd, brightupcmd, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 };
 static const char **statusscrolldn[] = {
-	NULL, voldowncmd, brightdowncmd, NULL, NULL, NULL, NULL, NULL,
+	NULL, voldowncmd, brightdowncmd, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+};
+/* widest text each slot may show; the box stays this wide so neighbours do not move */
+static const char *statusslot[] = {
+	"\uf131 mic unmute",
+	"\uf028 vol 100%",
+	"\uf185 bri 100%",
+	"\uf2db cpu 100%",
+	"\uf233 ram 100%",
+	"\uf1eb net Polakweg 14-15",
+	"\uf019 999.9 MiB/s",
+	"\uf093 999.9 MiB/s",
+	"\uf240 bat 100%",
+	"\uf017 Thu 01 Oct  15:43",
 };
 
 static const Key keys[] = {

@@ -742,6 +742,8 @@ drawstatus(Monitor *m)
 	char *blk[16], *s;
 	int i, x, tw = 0;
 
+	int gap = drw_fontset_getwidth(drw, " ") * 6 / 5; /* 30% of the old 4-space gap */
+
 	memcpy(buf, stext, sizeof buf);
 	statn = 0;
 	blk[statn++] = buf;
@@ -751,15 +753,20 @@ drawstatus(Monitor *m)
 		blk[statn++] = s;
 	}
 	for (i = 0; i < (int)statn; i++) {
-		statw[i] = TEXTW(blk[i]) - lrpad + 2;
+		if (i < LENGTH(statusslot))
+			statw[i] = TEXTW(statusslot[i]) - lrpad + 2;
+		else
+			statw[i] = TEXTW(blk[i]) - lrpad + 2;
 		if (statw[i] < 2)
 			statw[i] = 2;
 		tw += statw[i];
 	}
+	if (statn > 1)
+		tw += gap * ((int)statn - 1);
 	x = m->ww - tw;
 	for (i = 0; i < (int)statn; i++) {
 		static const int schtab[] = {
-			SchemeMic, SchemeVol, SchemeBri, SchemeCpu, SchemeRam, SchemeNet, SchemeBat, SchemeClk,
+			SchemeMic, SchemeVol, SchemeBri, SchemeCpu, SchemeRam, SchemeNet, SchemeNet, SchemeNet, SchemeBat, SchemeClk,
 		};
 		int sch = i < LENGTH(schtab) ? schtab[i] : SchemeBarNorm;
 
@@ -771,6 +778,11 @@ drawstatus(Monitor *m)
 		drw_setscheme(drw, scheme[sch]);
 		drw_text(drw, x, 0, statw[i], bh, 0, blk[i], 0);
 		x += statw[i];
+		if (gap && i + 1 < (int)statn) {
+			drw_setscheme(drw, scheme[SchemeBarNorm]);
+			drw_rect(drw, x, 0, gap, bh, 1, 1);
+			x += gap;
+		}
 	}
 	return tw;
 }

@@ -13,7 +13,7 @@ The status bar uses [slstatus](https://tools.suckless.org/slstatus/), also from 
 - Window borders are Gruvbox. The bar stays the original dwm gray, and the selected workspace stays blue. The window title on the bar stays gray.
 - Tiled windows fill the space (`resizehints = 0`).
 - Super+Left and Super+Right move between workspaces. Super+q closes a window.
-- The bar is drawn by a local slstatus build. From left to right on the right side: mic, volume, brightness, CPU, RAM, network, battery, date and time.
+- The bar is drawn by a local slstatus build. From left to right on the right side: mic, volume, brightness, CPU, RAM, network, download, upload, battery, date and time.
 - Scroll the volume or brightness fields to change them. Click the mic to mute it. Click CPU or RAM to open btop. Click the network name to open nmtui.
 - Redshift starts with dwm at 4000K.
 - Media keys are bound for mute, volume, mic, and brightness. `fn-media.sh` turns on the Lenovo Fn lock so those keys work without holding Fn.
@@ -75,7 +75,7 @@ Then log out and back in. Keys, colors, clicks, and anything started from `dwm.c
 | Bar text, icons, order, refresh | slstatus `config.def.h` |
 | How the bar is drawn and clicked | `drawstatus()` and `buttonpress()` in `dwm.c` |
 
-The bar fields and `statusclicks` must stay in the same order: mic, volume, brightness, CPU, RAM, network, battery, date and time. A field separator is the byte `0x1f`.
+The bar fields and `statusclicks` must stay in the same order: mic, volume, brightness, CPU, RAM, network, download, upload, battery, date and time. A field separator is the byte `0x1f`. Download and upload are the wlan0 rates from slstatus.
 
 Colors:
 
