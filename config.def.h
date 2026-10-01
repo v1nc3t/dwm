@@ -89,7 +89,7 @@ static const char *settingscmd[] = { "xfce4-settings-manager", NULL };
 #define BARREFRESH "kill -USR1 $(pidof slstatus) 2>/dev/null"
 static const char *mutecmd[]  = { "/bin/sh", "-c", "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle; " BARREFRESH, NULL };
 static const char *voldowncmd[] = { "/bin/sh", "-c", "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-; " BARREFRESH, NULL };
-static const char *volupcmd[] = { "/bin/sh", "-c", "wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+; " BARREFRESH, NULL };
+static const char *volupcmd[] = { "/bin/sh", "-c", "wpctl set-volume -l 1.67 @DEFAULT_AUDIO_SINK@ 5%+; " BARREFRESH, NULL };
 static const char *miccmd[]   = { "/bin/sh", "-c", "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle; " BARREFRESH, NULL };
 static const char *brightdowncmd[] = { "/bin/sh", "-c", "brightnessctl set 5%-; " BARREFRESH, NULL };
 static const char *brightupcmd[]   = { "/bin/sh", "-c", "brightnessctl set +5%; " BARREFRESH, NULL };
