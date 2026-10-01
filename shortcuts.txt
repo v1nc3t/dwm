@@ -1,0 +1,73 @@
+dwm shortcuts
+Super is the main modifier. Alt is only used for launching programs.
+
+Launch
+Super+Enter              terminal (qterminal)
+Super+c                  application launcher (rofi)
+Super+u                  select a region and copy it to the clipboard
+Super+Ctrl+u             copy the whole screen to the clipboard
+Alt+w                    Firefox
+Alt+f                    Thunar
+Alt+d                    Discord
+Alt+c                    VS Code
+Alt+m                    Spotify
+Alt+b                    terminal running btop
+Alt+o                    Obsidian
+
+Windows
+Super+j                  focus next window
+Super+k                  focus previous window
+Super+Shift+Enter        move focused window to master
+Super+q                  close focused window
+Super+Shift+c            close focused window
+Super+b                  show or hide the bar
+Super+h                  shrink master area
+Super+l                  grow master area
+Super+i                  add a master slot
+Super+d                  remove a master slot
+Super+Shift+Space        float or unfloat the focused window
+
+Layouts
+Super+t                  tile
+Super+f                  floating
+Super+m                  monocle
+Super+Space              cycle layouts
+
+Tags
+Super+1 .. Super+9       show that tag
+Super+Ctrl+1 .. 9        add or remove that tag from the view
+Super+Shift+1 .. 9       move the focused window to that tag
+Super+Ctrl+Shift+1 .. 9  add or remove that tag on the window
+Super+0                  show every tag
+Super+Shift+0            put the focused window on every tag
+Super+Tab                go back to the previous tag view
+Super+Left               previous workspace
+Super+Right              next workspace
+
+Monitors
+Super+,                  focus previous monitor
+Super+.                  focus next monitor
+Super+Shift+,            send the window to the previous monitor
+Super+Shift+.            send the window to the next monitor
+
+Hardware keys
+These fire on a plain press. Fn is not required.
+F1                       mute
+F2                       volume down
+F3                       volume up
+F4                       mute microphone
+F5                       brightness down
+F6                       brightness up
+Fn + F9                  Xfce settings
+Fn + Print               select a screen region and copy it to the clipboard
+
+Bar
+Scroll on volume         change the volume
+Scroll on brightness     change the brightness
+Left-click mic           mute or unmute the microphone
+Left-click CPU or RAM    open btop
+Left-click network       open nmtui
+
+Quit
+Super+Shift+q            quit dwm
+Super+Ctrl+q             quit dwm
