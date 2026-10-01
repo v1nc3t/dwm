@@ -10,7 +10,7 @@ The status bar uses [slstatus](https://tools.suckless.org/slstatus/), also from 
 
 - Super is the modifier. Alt is only used to launch programs.
 - Terminal is qterminal. Super+c opens rofi with the Gruvbox theme.
-- Window borders are Gruvbox. The bar stays the original dwm gray, and the selected workspace stays blue. The window title on the bar stays gray.
+- Window borders are Gruvbox. The selected workspace uses that same orange. The rest of the bar, including the window title, stays gray.
 - Tiled windows fill the space (`resizehints = 0`).
 - Super+Left and Super+Right move between workspaces. Super+q closes a window.
 - The bar is drawn by a local slstatus build. From left to right on the right side: mic, volume, brightness, CPU, RAM, network, download, upload, battery, date and time.

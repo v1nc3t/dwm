@@ -16,14 +16,12 @@ static const char col_selborder[]  = "#fe8019";
 static const char col_barbg[]      = "#222222";
 static const char col_barfg[]      = "#bbbbbb";
 static const char col_barborder[]  = "#444444";
-static const char col_barselbg[]   = "#005577";
-static const char col_barselfg[]   = "#eeeeee";
 static const char *colors[][3]      = {
 	/*                  fg            bg            border   */
 	[SchemeNorm]    = { col_fg,       col_bg,       col_border },
 	[SchemeSel]     = { col_selfg,    col_selbg,    col_selborder },
 	[SchemeBarNorm] = { col_barfg,    col_barbg,    col_barborder },
-	[SchemeBarSel]  = { col_barselfg, col_barselbg, col_barselbg },
+	[SchemeBarSel]  = { col_selfg,    col_selborder, col_selborder },
 	[SchemeMic]     = { "#b8bb26",    col_barbg,    col_barborder },
 	[SchemeAlert]   = { "#fb4934",    col_barbg,    col_barborder },
 	[SchemeVol]     = { "#fabd2f",    col_barbg,    col_barborder },
