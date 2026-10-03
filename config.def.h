@@ -85,18 +85,27 @@ static const char *spotcmd[]  = { "spotify", NULL };
 static const char *obscmd[]   = { "obsidian", NULL };
 static const char *settingscmd[] = { "xfce4-settings-manager", NULL };
 #define BARREFRESH "kill -USR1 $(pidof slstatus) 2>/dev/null"
-static const char *mutecmd[]  = { "/bin/sh", "-c", "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle; " BARREFRESH, NULL };
-static const char *voldowncmd[] = { "/bin/sh", "-c", "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-; " BARREFRESH, NULL };
-static const char *volupcmd[] = { "/bin/sh", "-c", "wpctl set-volume -l 1.67 @DEFAULT_AUDIO_SINK@ 5%+; " BARREFRESH, NULL };
+static const char *mutecmd[]  = { "/home/vincent/.config/dwm/vol.sh", "mute", NULL };
+static const char *voldowncmd[] = { "/home/vincent/.config/dwm/vol.sh", "down", NULL };
+static const char *volupcmd[] = { "/home/vincent/.config/dwm/vol.sh", "up", NULL };
 static const char *miccmd[]   = { "/bin/sh", "-c", "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle; " BARREFRESH, NULL };
-static const char *brightdowncmd[] = { "/bin/sh", "-c", "brightnessctl set 5%-; " BARREFRESH, NULL };
-static const char *brightupcmd[]   = { "/bin/sh", "-c", "brightnessctl set +5%; " BARREFRESH, NULL };
+static const char *brightdowncmd[] = { "/home/vincent/.config/dwm/bright.sh", "down", NULL };
+static const char *brightupcmd[]   = { "/home/vincent/.config/dwm/bright.sh", "up", NULL };
 static const char *cpuclick[] = { "qterminal", "-e", "btop", NULL };
 static const char *netclick[] = { "qterminal", "-e", "nmtui", NULL };
 static const char *statusscript[] = { "/bin/sh", "-c", "killall -q slstatus; exec /home/vincent/.config/slstatus/slstatus", NULL };
-static const char *redshiftcmd[] = { "redshift", "-O", "4000", NULL };
+
+/* empty desktop is this color. dwm fills the root window. no wallpaper program. */
+static const char rootbg[] = "#000000";
+/* laptop panel, then the panel placed to its right. extrascale is text size: 1 native, lower is smaller. */
+static const char laptopout[] = "eDP-1";
+static const char extraout[] = "HDMI-1";
+static const float extrascale = 0.75;
+static const int screentemp = 4000;
 
 /* same order as slstatus: mic, vol, brightness, cpu, ram, network, down, up, battery, date/time */
+/* brightness stays off the extra monitor's bar; the keys still change it */
+static const int statushide = 2;
 static const char **statusclicks[] = {
 	miccmd, NULL, NULL, cpuclick, cpuclick, netclick, NULL, NULL, NULL, NULL,
 };

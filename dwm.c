@@ -22,6 +22,7 @@
  */
 #include <errno.h>
 #include <locale.h>
+#include <math.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -36,6 +37,7 @@
 #include <X11/Xlib.h>
 #include <X11/Xproto.h>
 #include <X11/Xutil.h>
+#include <X11/extensions/Xrandr.h>
 #ifdef XINERAMA
 #include <X11/extensions/Xinerama.h>
 #endif /* XINERAMA */
@@ -205,6 +207,10 @@ static void setfocus(Client *c);
 static void setfullscreen(Client *c, int fullscreen);
 static void setlayout(const Arg *arg);
 static void setmfact(const Arg *arg);
+static void arrangemonitors(int probe);
+static void screenchange(XEvent *e);
+static void setrootcolor(void);
+static void setspeaker(void);
 static void setup(void);
 static void seturgent(Client *c, int urg);
 static void showhide(Client *c);
@@ -246,6 +252,12 @@ static int statx[16], statw[16];
 static unsigned int statn;
 static pid_t statuspid;
 static int screen;
+static int rrbase;
+static int arranging;
+static int rootdone;
+static int warmed;
+static int unmuted;
+static char speakid[16] = "0";
 static int sw, sh;           /* X display screen geometry width, height */
 static int bh;               /* bar height */
 static int lrpad;            /* sum of left and right padding for text */
@@ -274,6 +286,7 @@ static Clr **scheme;
 static Display *dpy;
 static Drw *drw;
 static Monitor *mons, *selmon;
+static int curmon;
 static Window root, wmcheckwin;
 
 /* configuration, allows nested code to access above variables */
@@ -451,7 +464,9 @@ buttonpress(XEvent *e)
 			click = ClkLtSymbol;
 		else if (statn > 0 && ev->x >= statx[0]) {
 			click = ClkStatusText;
-			for (i = 0; i < statn && i < LENGTH(statusclicks); i++)
+			for (i = 0; i < statn && i < LENGTH(statusclicks); i++) {
+				if (statw[i] < 1)
+					continue;
 				if (ev->x < statx[i] + statw[i]) {
 					if (ev->button == Button4 && i < LENGTH(statusscrollup) && statusscrollup[i])
 						arg.v = statusscrollup[i];
@@ -465,6 +480,7 @@ buttonpress(XEvent *e)
 					}
 					break;
 				}
+			}
 		} else
 			click = ClkWinTitle;
 	} else if ((c = wintoclient(ev->window))) {
@@ -589,6 +605,8 @@ configurenotify(XEvent *e)
 		sw = ev->width;
 		sh = ev->height;
 		if (updategeom() || dirty) {
+			if (dirty)
+				setrootcolor();
 			drw_resize(drw, sw, bh);
 			updatebars();
 			for (m = mons; m; m = m->next) {
@@ -752,33 +770,42 @@ drawstatus(Monitor *m)
 		*s++ = '\0';
 		blk[statn++] = s;
 	}
+	int vis[16], nvis = 0;
+
 	for (i = 0; i < (int)statn; i++) {
+		if (m->mx > 0 && i == statushide) {
+			statw[i] = 0;
+			statx[i] = -1;
+			continue;
+		}
 		if (i < LENGTH(statusslot))
 			statw[i] = TEXTW(statusslot[i]) - lrpad + 2;
 		else
 			statw[i] = TEXTW(blk[i]) - lrpad + 2;
 		if (statw[i] < 2)
 			statw[i] = 2;
+		vis[nvis++] = i;
 		tw += statw[i];
 	}
-	if (statn > 1)
-		tw += gap * ((int)statn - 1);
+	if (nvis > 1)
+		tw += gap * (nvis - 1);
 	x = m->ww - tw;
-	for (i = 0; i < (int)statn; i++) {
+	for (i = 0; i < nvis; i++) {
 		static const int schtab[] = {
 			SchemeMic, SchemeVol, SchemeBri, SchemeCpu, SchemeRam, SchemeNet, SchemeNet, SchemeNet, SchemeBat, SchemeClk,
 		};
-		int sch = i < LENGTH(schtab) ? schtab[i] : SchemeBarNorm;
+		int slot = vis[i];
+		int sch = slot < LENGTH(schtab) ? schtab[slot] : SchemeBarNorm;
 
-		statx[i] = x;
-		if (i == 0)
-			sch = strstr(blk[i], "unmute") ? SchemeMic : SchemeAlert;
-		else if (i == 1 && strstr(blk[i], "mute"))
+		statx[slot] = x;
+		if (slot == 0)
+			sch = strstr(blk[slot], "unmute") ? SchemeMic : SchemeAlert;
+		else if (slot == 1 && strstr(blk[slot], "mute"))
 			sch = SchemeAlert;
 		drw_setscheme(drw, scheme[sch]);
-		drw_text(drw, x, 0, statw[i], bh, 0, blk[i], 0);
-		x += statw[i];
-		if (gap && i + 1 < (int)statn) {
+		drw_text(drw, x, 0, statw[slot], bh, 0, blk[slot], 0);
+		x += statw[slot];
+		if (gap && i + 1 < nvis) {
 			drw_setscheme(drw, scheme[SchemeBarNorm]);
 			drw_rect(drw, x, 0, gap, bh, 1, 1);
 			x += gap;
@@ -848,17 +875,12 @@ void
 enternotify(XEvent *e)
 {
 	Client *c;
-	Monitor *m;
 	XCrossingEvent *ev = &e->xcrossing;
 
+	/* Focusing root here queues a FocusIn that yanks focus back during a fast move. */
 	if ((ev->mode != NotifyNormal || ev->detail == NotifyInferior) && ev->window != root)
 		return;
-	c = wintoclient(ev->window);
-	m = c ? c->mon : wintomon(ev->window);
-	if (m != selmon) {
-		unfocus(selmon->sel, 1);
-		selmon = m;
-	} else if (!c || c == selmon->sel)
+	if (!(c = wintoclient(ev->window)) || c == selmon->sel)
 		return;
 	focus(c);
 }
@@ -871,6 +893,22 @@ expose(XEvent *e)
 
 	if (ev->count == 0 && (m = wintomon(ev->window)))
 		drawbar(m);
+}
+
+static void
+savemon(void)
+{
+	FILE *f;
+	int n;
+
+	n = (selmon && selmon->mx > 0) ? 2 : 1;
+	if (n == curmon)
+		return;
+	curmon = n;
+	if (!(f = fopen("/home/vincent/.cache/dwm-mon", "w")))
+		return;
+	fprintf(f, "%d\n", n);
+	fclose(f);
 }
 
 void
@@ -895,6 +933,7 @@ focus(Client *c)
 		XDeleteProperty(dpy, root, netatom[NetActiveWindow]);
 	}
 	selmon->sel = c;
+	savemon();
 	drawbars();
 }
 
@@ -1473,9 +1512,12 @@ run(void)
 	XEvent ev;
 	/* main event loop */
 	XSync(dpy, False);
-	while (running && !XNextEvent(dpy, &ev))
-		if (handler[ev.type])
+	while (running && !XNextEvent(dpy, &ev)) {
+		if (rrbase && (ev.type == rrbase + RRScreenChangeNotify || ev.type == rrbase + RRNotify))
+			screenchange(&ev);
+		else if (ev.type < LASTEvent && handler[ev.type])
 			handler[ev.type](&ev); /* call handler */
+	}
 }
 
 void
@@ -1624,6 +1666,296 @@ setmfact(const Arg *arg)
 	arrange(selmon);
 }
 
+static XRRModeInfo *
+modebyid(XRRScreenResources *res, RRMode id)
+{
+	int i;
+
+	for (i = 0; i < res->nmode; i++)
+		if (res->modes[i].id == id)
+			return &res->modes[i];
+	return NULL;
+}
+
+static XRROutputInfo *
+findoutput(XRRScreenResources *res, const char *name, RROutput *id)
+{
+	int i;
+	XRROutputInfo *oi;
+
+	for (i = 0; i < res->noutput; i++) {
+		oi = XRRGetOutputInfo(dpy, res, res->outputs[i]);
+		if (!oi)
+			continue;
+		if (!strcmp(oi->name, name)) {
+			*id = res->outputs[i];
+			return oi;
+		}
+		XRRFreeOutputInfo(oi);
+	}
+	return NULL;
+}
+
+static void
+setcrtcgamma(RRCrtc crtc)
+{
+	int size, i, r, g, b;
+	double t, rr, gg, bb, v;
+	XRRCrtcGamma *ga;
+
+	if (screentemp <= 0 || !crtc)
+		return;
+	size = XRRGetCrtcGammaSize(dpy, crtc);
+	if (size < 2)
+		return;
+	t = screentemp / 100.0;
+	if (t <= 66) {
+		rr = 255;
+		gg = 99.4708025861 * log(t) - 161.1195681661;
+		bb = t <= 19 ? 0 : 138.5177312231 * log(t - 10) - 305.0447927307;
+	} else {
+		rr = 329.698727446 * pow(t - 60, -0.1332047592);
+		gg = 288.1221695283 * pow(t - 60, -0.0755148492);
+		bb = 255;
+	}
+	r = rr < 0 ? 0 : rr > 255 ? 255 : (int)(rr + 0.5);
+	g = gg < 0 ? 0 : gg > 255 ? 255 : (int)(gg + 0.5);
+	b = bb < 0 ? 0 : bb > 255 ? 255 : (int)(bb + 0.5);
+	ga = XRRAllocGamma(size);
+	for (i = 0; i < size; i++) {
+		v = (double)i / (double)(size - 1);
+		ga->red[i] = (unsigned short)(v * r / 255.0 * 65535);
+		ga->green[i] = (unsigned short)(v * g / 255.0 * 65535);
+		ga->blue[i] = (unsigned short)(v * b / 255.0 * 65535);
+	}
+	XRRSetCrtcGamma(dpy, crtc, ga);
+	XRRFreeGamma(ga);
+}
+
+static int
+scaledok(RRCrtc crtc, double s)
+{
+	XRRCrtcTransformAttributes *ta = NULL;
+	double got;
+
+	if (!XRRGetCrtcTransform(dpy, crtc, &ta) || !ta)
+		return 0;
+	got = XFixedToDouble(ta->currentTransform.matrix[0][0]);
+	XFree(ta);
+	return got > s - 0.02 && got < s + 0.02;
+}
+
+static void
+setscale(RRCrtc crtc, double s)
+{
+	XTransform tr;
+
+	memset(&tr, 0, sizeof tr);
+	tr.matrix[0][0] = XDoubleToFixed(s);
+	tr.matrix[1][1] = XDoubleToFixed(s);
+	tr.matrix[2][2] = XDoubleToFixed(1.0);
+	XRRSetCrtcTransform(dpy, crtc, &tr, "bilinear", NULL, 0);
+}
+
+/* Laptop at 0,0. Extra panel to its right, scaled from extrascale. Gamma from screentemp. */
+static void
+arrangemonitors(int probe)
+{
+	XRRScreenResources *res = NULL;
+	XRROutputInfo *lap = NULL, *ext = NULL;
+	XRRCrtcInfo *ci;
+	XRRModeInfo *em, *hm;
+	RROutput lid = 0, xid = 0, one;
+	RRCrtc lcrtc, xcrtc = 0;
+	int ew = 0, eh = 0, hw = 0, hh = 0, fw, fh, minw, minh, maxw, maxh, changed = 0;
+	int scrw, scrh, mmw, mmh;
+	double scale;
+
+	if (arranging || !rrbase)
+		return;
+	arranging = 1;
+	res = probe ? XRRGetScreenResources(dpy, root) : XRRGetScreenResourcesCurrent(dpy, root);
+	if (!res)
+		goto out;
+	lap = findoutput(res, laptopout, &lid);
+	ext = findoutput(res, extraout, &xid);
+	if (!lap || lap->connection != RR_Connected || lap->nmode < 1 || lap->ncrtc < 1)
+		goto out;
+	lcrtc = lap->crtc ? lap->crtc : lap->crtcs[0];
+	ci = XRRGetCrtcInfo(dpy, res, lcrtc);
+	em = (ci && ci->mode) ? modebyid(res, ci->mode) : modebyid(res, lap->modes[0]);
+	if (ci)
+		XRRFreeCrtcInfo(ci);
+	if (!em)
+		goto out;
+	ew = (int)em->width;
+	eh = (int)em->height;
+	scale = extrascale > 0.1 ? 1.0 / extrascale : 1.0;
+	if (ext && ext->connection == RR_Connected && ext->nmode > 0) {
+		hm = modebyid(res, ext->modes[0]);
+		if (hm) {
+			hw = (int)(hm->width * scale + 0.5);
+			hh = (int)(hm->height * scale + 0.5);
+		}
+		xcrtc = ext->crtc;
+		if (!xcrtc) {
+			int i;
+			for (i = 0; i < ext->ncrtc && !xcrtc; i++) {
+				ci = XRRGetCrtcInfo(dpy, res, ext->crtcs[i]);
+				if (ci && ci->noutput == 0)
+					xcrtc = ext->crtcs[i];
+				if (ci)
+					XRRFreeCrtcInfo(ci);
+			}
+		}
+	}
+	fw = ew + hw;
+	fh = eh > hh ? eh : hh;
+	XRRGetScreenSizeRange(dpy, root, &minw, &minh, &maxw, &maxh);
+	if (fw > maxw)
+		fw = maxw;
+	if (fh > maxh)
+		fh = maxh;
+	if (fw < minw)
+		fw = minw;
+	if (fh < minh)
+		fh = minh;
+	scrw = DisplayWidth(dpy, screen);
+	scrh = DisplayHeight(dpy, screen);
+	mmw = (int)lap->mm_width + (ext && hw ? (int)ext->mm_width : 0);
+	mmh = (int)lap->mm_height;
+	if (ext && hh && (int)ext->mm_height > mmh)
+		mmh = (int)ext->mm_height;
+	if (mmw < 1)
+		mmw = fw;
+	if (mmh < 1)
+		mmh = fh;
+	XSetErrorHandler(xerrordummy);
+	if (fw > scrw || fh > scrh) {
+		XRRSetScreenSize(dpy, root, fw, fh, mmw, mmh);
+		changed = 1;
+	}
+	ci = XRRGetCrtcInfo(dpy, res, lcrtc);
+	if (ci && em && (ci->x != 0 || ci->y != 0 || ci->mode != em->id)) {
+		one = lid;
+		XRRSetCrtcConfig(dpy, res, lcrtc, CurrentTime, 0, 0, em->id, RR_Rotate_0, &one, 1);
+		changed = 1;
+	}
+	if (ci)
+		XRRFreeCrtcInfo(ci);
+	if (xcrtc && hw) {
+		int ok = 0;
+		hm = modebyid(res, ext->modes[0]);
+		ci = XRRGetCrtcInfo(dpy, res, xcrtc);
+		if (ci && hm && ci->mode == hm->id && ci->x == ew && ci->y == 0 && scaledok(xcrtc, scale))
+			ok = 1;
+		if (ci)
+			XRRFreeCrtcInfo(ci);
+		if (!ok && hm) {
+			setscale(xcrtc, scale);
+			one = xid;
+			XRRSetCrtcConfig(dpy, res, xcrtc, CurrentTime, ew, 0, hm->id, RR_Rotate_0, &one, 1);
+			changed = 1;
+		}
+	}
+	if (fw < scrw || fh < scrh) {
+		XRRSetScreenSize(dpy, root, fw, fh, mmw, mmh);
+		changed = 1;
+	}
+	if (changed || !warmed) {
+		setcrtcgamma(lcrtc);
+		if (xcrtc && hw)
+			setcrtcgamma(xcrtc);
+		warmed = 1;
+	}
+	XSync(dpy, False);
+	XSetErrorHandler(xerror);
+	if (changed || !rootdone)
+		setrootcolor();
+out:
+	if (lap)
+		XRRFreeOutputInfo(lap);
+	if (ext)
+		XRRFreeOutputInfo(ext);
+	if (res)
+		XRRFreeScreenResources(res);
+	arranging = 0;
+}
+
+static void
+setrootcolor(void)
+{
+	XColor col, dummy;
+
+	if (!XAllocNamedColor(dpy, DefaultColormap(dpy, screen), rootbg, &col, &dummy))
+		return;
+	XSetWindowBackgroundPixmap(dpy, root, None);
+	XSetWindowBackground(dpy, root, col.pixel);
+	XClearWindow(dpy, root);
+	rootdone = 1;
+}
+
+/* Headphones if that sink exists, otherwise the laptop speaker. Never the display. */
+static void
+setspeaker(void)
+{
+	FILE *fp;
+	char line[320];
+	int sinks = 0, hp = 0, sp = 0, id;
+	Arg a;
+	static const char *defcmd[] = { "wpctl", "set-default", speakid, NULL };
+	static const char *sinkon[] = { "wpctl", "set-mute", speakid, "0", NULL };
+	static const char *mixon[] = { "amixer", "-q", "-c", "0", "sset", "Master", "on", NULL };
+	static const char *spkon[] = { "amixer", "-q", "-c", "0", "sset", "Speaker", "on", NULL };
+
+	fp = popen("wpctl status", "r");
+	if (!fp)
+		return;
+	while (fgets(line, sizeof line, fp)) {
+		if (strstr(line, "Sinks:"))
+			sinks = 1;
+		else if (sinks && strstr(line, "Sources:"))
+			sinks = 0;
+		else if (sinks && strstr(line, "cAVS")) {
+			id = atoi(line + strcspn(line, "0123456789"));
+			if (strstr(line, "Headphones"))
+				hp = id;
+			else if (strstr(line, "Speaker"))
+				sp = id;
+		}
+	}
+	pclose(fp);
+	id = hp ? hp : sp;
+	if (!id)
+		return;
+	snprintf(speakid, sizeof speakid, "%d", id);
+	a.v = defcmd;
+	spawn(&a);
+	if (!unmuted) {
+		a.v = sinkon;
+		spawn(&a);
+		a.v = mixon;
+		spawn(&a);
+		a.v = spkon;
+		spawn(&a);
+		unmuted = 1;
+	}
+}
+
+static void
+screenchange(XEvent *e)
+{
+	int hot = 0;
+
+	if (e->type == rrbase + RRScreenChangeNotify)
+		XRRUpdateConfiguration(e);
+	else
+		hot = ((XRRNotifyEvent *)e)->subtype == RRNotify_OutputChange;
+	arrangemonitors(hot);
+	if (hot)
+		setspeaker();
+}
+
 void
 setup(void)
 {
@@ -1701,9 +2033,17 @@ setup(void)
 	focus(NULL);
 	spawnstatus();
 	{
-		Arg a = {.v = redshiftcmd};
-		spawn(&a);
+		int ev, err;
+
+		if (XRRQueryExtension(dpy, &ev, &err)) {
+			rrbase = ev;
+			XRRSelectInput(dpy, root,
+				RRScreenChangeNotifyMask | RRCrtcChangeNotifyMask | RROutputChangeNotifyMask);
+		}
 	}
+	setrootcolor();
+	arrangemonitors(1);
+	setspeaker();
 }
 
 void
