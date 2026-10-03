@@ -12,8 +12,6 @@ Alt+d                    Discord
 Alt+c                    VS Code
 Alt+m                    Spotify
 Alt+b                    terminal running btop
-Alt+o                    Obsidian
-
 Windows
 Super+j                  focus next window
 Super+k                  focus previous window
