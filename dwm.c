@@ -214,6 +214,7 @@ static void setspeaker(void);
 static void setup(void);
 static void seturgent(Client *c, int urg);
 static void showhide(Client *c);
+static void shot(const Arg *arg);
 static void spawn(const Arg *arg);
 static void spawnstatus(void);
 static void tag(const Arg *arg);
@@ -1857,6 +1858,27 @@ arrangemonitors(int probe)
 			XRRSetCrtcConfig(dpy, res, xcrtc, CurrentTime, ew, 0, hm->id, RR_Rotate_0, &one, 1);
 			changed = 1;
 		}
+		/* Without panning the scaled panel goes black when a window opens. */
+		if (hm) {
+			XRRPanning *cur, pan;
+
+			cur = XRRGetPanning(dpy, res, xcrtc);
+			if (!cur || cur->left != (unsigned)ew || cur->top != 0
+			|| cur->width != (unsigned)hw || cur->height != (unsigned)hh) {
+				memset(&pan, 0, sizeof pan);
+				pan.left = ew;
+				pan.top = 0;
+				pan.width = hw;
+				pan.height = hh;
+				pan.track_left = ew;
+				pan.track_top = 0;
+				pan.track_width = hw;
+				pan.track_height = hh;
+				XRRSetPanning(dpy, res, xcrtc, &pan);
+			}
+			if (cur)
+				XRRFreePanning(cur);
+		}
 	}
 	if (fw < scrw || fh < scrh) {
 		XRRSetScreenSize(dpy, root, fw, fh, mmw, mmh);
@@ -1895,36 +1917,79 @@ setrootcolor(void)
 	rootdone = 1;
 }
 
+static int
+cmdout(char *const argv[], char *out, size_t n)
+{
+	int fd[2];
+	ssize_t r, got = 0;
+	pid_t pid;
+
+	if (pipe(fd) < 0)
+		return -1;
+	pid = fork();
+	if (pid < 0) {
+		close(fd[0]);
+		close(fd[1]);
+		return -1;
+	}
+	if (pid == 0) {
+		dup2(fd[1], STDOUT_FILENO);
+		close(fd[0]);
+		close(fd[1]);
+		if (dpy)
+			close(ConnectionNumber(dpy));
+		execvp(argv[0], argv);
+		_exit(127);
+	}
+	close(fd[1]);
+	while ((r = read(fd[0], out + got, n - 1 - got)) > 0) {
+		got += r;
+		if (got >= (ssize_t)n - 1)
+			break;
+	}
+	/* drain so wpctl can exit if the buffer filled */
+	if (got >= (ssize_t)n - 1) {
+		char junk;
+		while (read(fd[0], &junk, 1) > 0)
+			;
+	}
+	close(fd[0]);
+	out[got] = '\0';
+	return got > 0 ? 0 : -1;
+}
+
 /* Headphones if that sink exists, otherwise the laptop speaker. Never the display. */
 static void
 setspeaker(void)
 {
-	FILE *fp;
-	char line[320];
+	static char st[16384];
+	char *p, *nl;
 	int sinks = 0, hp = 0, sp = 0, id;
 	Arg a;
+	static char *statargv[] = { "wpctl", "status", NULL };
 	static const char *defcmd[] = { "wpctl", "set-default", speakid, NULL };
 	static const char *sinkon[] = { "wpctl", "set-mute", speakid, "0", NULL };
 	static const char *mixon[] = { "amixer", "-q", "-c", "0", "sset", "Master", "on", NULL };
 	static const char *spkon[] = { "amixer", "-q", "-c", "0", "sset", "Speaker", "on", NULL };
 
-	fp = popen("wpctl status", "r");
-	if (!fp)
+	if (cmdout(statargv, st, sizeof st) < 0)
 		return;
-	while (fgets(line, sizeof line, fp)) {
-		if (strstr(line, "Sinks:"))
+	for (p = st; p && *p; p = nl ? nl + 1 : NULL) {
+		nl = strchr(p, '\n');
+		if (nl)
+			*nl = '\0';
+		if (strstr(p, "Sinks:"))
 			sinks = 1;
-		else if (sinks && strstr(line, "Sources:"))
+		else if (sinks && strstr(p, "Sources:"))
 			sinks = 0;
-		else if (sinks && strstr(line, "cAVS")) {
-			id = atoi(line + strcspn(line, "0123456789"));
-			if (strstr(line, "Headphones"))
+		else if (sinks && strstr(p, "cAVS")) {
+			id = atoi(p + strcspn(p, "0123456789"));
+			if (strstr(p, "Headphones"))
 				hp = id;
-			else if (strstr(line, "Speaker"))
+			else if (strstr(p, "Speaker"))
 				sp = id;
 		}
 	}
-	pclose(fp);
 	id = hp ? hp : sp;
 	if (!id)
 		return;
@@ -2094,6 +2159,53 @@ spawnstatus(void)
 	sigaction(SIGCHLD, &sa, NULL);
 	execvp(statusscript[0], (char **)statusscript);
 	die("dwm: execvp '%s' failed:", statusscript[0]);
+}
+
+static void
+shot(const Arg *arg)
+{
+	int fd[2];
+	struct sigaction sa;
+	pid_t pid;
+
+	if (!arg || !arg->v || pipe(fd) < 0)
+		return;
+	pid = fork();
+	if (pid < 0) {
+		close(fd[0]);
+		close(fd[1]);
+		return;
+	}
+	if (pid == 0) {
+		if (dpy)
+			close(ConnectionNumber(dpy));
+		setsid();
+		sigemptyset(&sa.sa_mask);
+		sa.sa_flags = 0;
+		sa.sa_handler = SIG_DFL;
+		sigaction(SIGCHLD, &sa, NULL);
+		dup2(fd[1], STDOUT_FILENO);
+		close(fd[0]);
+		close(fd[1]);
+		execvp(((char **)arg->v)[0], (char **)arg->v);
+		_exit(127);
+	}
+	if (fork() == 0) {
+		if (dpy)
+			close(ConnectionNumber(dpy));
+		setsid();
+		sigemptyset(&sa.sa_mask);
+		sa.sa_flags = 0;
+		sa.sa_handler = SIG_DFL;
+		sigaction(SIGCHLD, &sa, NULL);
+		dup2(fd[0], STDIN_FILENO);
+		close(fd[0]);
+		close(fd[1]);
+		execlp("xclip", "xclip", "-selection", "clipboard", "-t", "image/png", (char *)NULL);
+		_exit(127);
+	}
+	close(fd[0]);
+	close(fd[1]);
 }
 
 void

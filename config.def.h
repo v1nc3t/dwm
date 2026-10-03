@@ -84,16 +84,18 @@ static const char *codecmd[]  = { "code", NULL };
 static const char *spotcmd[]  = { "spotify", NULL };
 static const char *obscmd[]   = { "obsidian", NULL };
 static const char *settingscmd[] = { "xfce4-settings-manager", NULL };
-#define BARREFRESH "kill -USR1 $(pidof slstatus) 2>/dev/null"
-static const char *mutecmd[]  = { "/home/vincent/.config/dwm/vol.sh", "mute", NULL };
-static const char *voldowncmd[] = { "/home/vincent/.config/dwm/vol.sh", "down", NULL };
-static const char *volupcmd[] = { "/home/vincent/.config/dwm/vol.sh", "up", NULL };
-static const char *miccmd[]   = { "/bin/sh", "-c", "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle; " BARREFRESH, NULL };
-static const char *brightdowncmd[] = { "/home/vincent/.config/dwm/bright.sh", "down", NULL };
-static const char *brightupcmd[]   = { "/home/vincent/.config/dwm/bright.sh", "up", NULL };
+static const char *mutecmd[]  = { "wpctl", "set-mute", "@DEFAULT_AUDIO_SINK@", "toggle", NULL };
+static const char *voldowncmd[] = { "wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", "5%-", NULL };
+static const char *volupcmd[] = { "wpctl", "set-volume", "-l", "1.67", "@DEFAULT_AUDIO_SINK@", "5%+", NULL };
+static const char *miccmd[] = { "wpctl", "set-mute", "@DEFAULT_AUDIO_SOURCE@", "toggle", NULL };
+static const char *brightdowncmd[] = { "/usr/bin/brightnessctl", "set", "5%-", NULL };
+static const char *brightupcmd[] = { "/usr/bin/brightnessctl", "set", "+5%", NULL };
 static const char *cpuclick[] = { "qterminal", "-e", "btop", NULL };
 static const char *netclick[] = { "qterminal", "-e", "nmtui", NULL };
-static const char *statusscript[] = { "/bin/sh", "-c", "killall -q slstatus; exec /home/vincent/.config/slstatus/slstatus", NULL };
+static const char *statusscript[] = { "/home/vincent/.config/slstatus/slstatus", NULL };
+static const char *roficmd[] = { "rofi", "-show", "drun", "-theme", "/usr/share/rofi/themes/gruvbox-dark.rasi", NULL };
+static const char *shotsel[] = { "maim", "--select", NULL };
+static const char *shotfull[] = { "maim", NULL };
 
 /* empty desktop is this color. dwm fills the root window. no wallpaper program. */
 static const char rootbg[] = "#000000";
@@ -167,9 +169,9 @@ static const Key keys[] = {
 	{ MODKEY|ControlMask,           XK_q,      quit,           {0} },
 	{ MODKEY,                       XK_Left,   shiftview,      {.i = -1 } },
 	{ MODKEY,                       XK_Right,  shiftview,      {.i = +1 } },
-	{ MODKEY,                       XK_c,      spawn,          SHCMD("rofi -show drun -theme /usr/share/rofi/themes/gruvbox-dark.rasi") },
-	{ MODKEY,                       XK_u,      spawn,          SHCMD("maim --select | xclip -selection clipboard -t image/png") },
-	{ MODKEY|ControlMask,           XK_u,      spawn,          SHCMD("maim | xclip -selection clipboard -t image/png") },
+	{ MODKEY,                       XK_c,      spawn,          {.v = roficmd } },
+	{ MODKEY,                       XK_u,      shot,           {.v = shotsel } },
+	{ MODKEY|ControlMask,           XK_u,      shot,           {.v = shotfull } },
 	{ Mod1Mask,                     XK_w,      spawn,          {.v = firefoxcmd } },
 	{ Mod1Mask,                     XK_f,      spawn,          {.v = filecmd } },
 	{ Mod1Mask,                     XK_d,      spawn,          {.v = discordcmd } },
@@ -191,7 +193,7 @@ static const Key keys[] = {
 	{ 0,                            XK_F6,                     spawn, {.v = brightupcmd } },
 	{ 0,                            XK_F9,                     spawn, {.v = settingscmd } },
 	{ 0,                            XF86XK_Tools,              spawn, {.v = settingscmd } },
-	{ 0,                            XK_Print,                  spawn, SHCMD("maim -s | xclip -selection clipboard -t image/png") },
+	{ 0,                            XK_Print,                  shot,  {.v = shotsel } },
 };
 
 /* button definitions */
