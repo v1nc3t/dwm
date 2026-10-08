@@ -1,0 +1,2 @@
+# Lenovo Fn lock on at boot, so the F-row media keys work without holding Fn.
+ACTION=="add", SUBSYSTEM=="leds", KERNEL=="platform::fnlock", ATTR{brightness}="1"

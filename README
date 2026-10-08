@@ -15,8 +15,10 @@ The status bar uses [slstatus](https://tools.suckless.org/slstatus/), also from 
 - Super+Left and Super+Right move between workspaces. Super+q closes a window.
 - The bar is drawn by a local slstatus build. From left to right on the right side: mic, volume, brightness, CPU, RAM, network, download, upload, battery, date and time.
 - Scroll the volume or brightness fields to change them. Click the mic to mute it. Click CPU or RAM to open btop. Click the network name to open nmtui.
-- Redshift starts with dwm at 4000K.
-- Media keys are bound for mute, volume, mic, and brightness. `fn-media.sh` turns on the Lenovo Fn lock so those keys work without holding Fn.
+- dwm warms every screen to 4000K itself (`screentemp`). No redshift needed.
+- A second panel (HDMI or USB-C) is placed right of the laptop and scaled by `extrascale` as soon as it is plugged in. Unplugging it turns that output off again.
+- Sound goes to the headphones if they are present, otherwise the laptop speakers, never the monitor.
+- Media keys are bound for mute, volume, mic, and brightness. `fnlock.rules` turns on the Lenovo Fn lock so those keys work without holding Fn.
 - Full key list: `shortcuts.txt`.
 
 ## Requirements
@@ -25,11 +27,11 @@ The status bar uses [slstatus](https://tools.suckless.org/slstatus/), also from 
 - A C compiler and make
 - qterminal, rofi, maim, xclip
 - PipeWire (`wpctl`), brightnessctl, NetworkManager (`nmtui`, `iw`)
-- btop, redshift
+- btop
 - JetBrainsMono Nerd Font, so the bar icons render
 - slstatus 1.1, built separately (see below)
 
-The launch keys also expect Firefox, Thunar, Discord, VS Code (`code`), Spotify, and Obsidian. Missing ones only affect that key.
+The launch keys also expect Firefox, Thunar, Discord, VS Code (`code`), and Spotify. Missing ones only affect that key.
 
 ## Install
 
@@ -50,12 +52,12 @@ exec "$HOME/.config/dwm/dwm" "$@"
 
 Log out and choose the dwm session. dwm does not reload a running binary.
 
-Build slstatus the same way, from its own tree (here, `~/.config/slstatus`). The path in `statusscript` inside `config.def.h` must point at that binary. dwm starts it, and starts redshift, when the session begins.
+Build slstatus the same way, from its own tree (here, `~/.config/slstatus`). The path in `statusscript` inside `config.def.h` must point at that binary. dwm starts it when the session begins.
 
-On this Lenovo, media keys need the Fn lock once:
+On this Lenovo, media keys need the Fn lock. Install the udev rule once; it applies at every boot:
 
 ```sh
-sudo ~/.config/dwm/fn-media.sh
+sudo cp ~/.config/dwm/fnlock.rules /etc/udev/rules.d/90-fnlock.rules
 ```
 
 ## Change the config

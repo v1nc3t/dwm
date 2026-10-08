@@ -6,7 +6,6 @@ static const unsigned int snap      = 32;       /* snap pixel */
 static const int showbar            = 1;        /* 0 means no bar */
 static const int topbar             = 1;        /* 0 means bottom bar */
 static const char *fonts[]          = { "monospace:size=10", "JetBrainsMono Nerd Font Mono:size=10" };
-static const char dmenufont[]       = "monospace:size=10";
 static const char col_bg[]         = "#282828";
 static const char col_fg[]         = "#ebdbb2";
 static const char col_border[]     = "#3c3836";
@@ -69,12 +68,7 @@ static const Layout layouts[] = {
 	{ MODKEY|ShiftMask,             KEY,      tag,            {.ui = 1 << TAG} }, \
 	{ MODKEY|ControlMask|ShiftMask, KEY,      toggletag,      {.ui = 1 << TAG} },
 
-/* helper for spawning shell commands in the pre dwm-5.0 fashion */
-#define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
-
 /* commands */
-static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() */
-static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", col_bg, "-nf", col_fg, "-sb", col_selbg, "-sf", col_selfg, NULL };
 static const char *termcmd[]  = { "qterminal", NULL };
 static const char *btopcmd[]  = { "qterminal", "-e", "btop", NULL };
 static const char *firefoxcmd[] = { "firefox", NULL };
@@ -89,7 +83,6 @@ static const char *volupcmd[] = { "wpctl", "set-volume", "-l", "1.67", "@DEFAULT
 static const char *miccmd[] = { "wpctl", "set-mute", "@DEFAULT_AUDIO_SOURCE@", "toggle", NULL };
 static const char *brightdowncmd[] = { "/usr/bin/brightnessctl", "set", "5%-", NULL };
 static const char *brightupcmd[] = { "/usr/bin/brightnessctl", "set", "+5%", NULL };
-static const char *cpuclick[] = { "qterminal", "-e", "btop", NULL };
 static const char *netclick[] = { "qterminal", "-e", "nmtui", NULL };
 static const char *statusscript[] = { "/home/vincent/.config/slstatus/slstatus", NULL };
 static const char *roficmd[] = { "rofi", "-show", "drun", "-theme", "/usr/share/rofi/themes/gruvbox-dark.rasi", NULL };
@@ -99,7 +92,9 @@ static const char *shotfull[] = { "maim", NULL };
 /* empty desktop is this color. dwm fills the root window. no wallpaper program. */
 static const char rootbg[] = "#000000";
 /* laptop panel. Any other connected panel (HDMI or USB-C) is placed to its right.
- * extrascale is text size on that panel: 1 native, lower is smaller. */
+ * extrascale is text size on that panel: 1 native, lower is smaller.
+ * Anything but 1 makes X draw the pointer in software while that panel is
+ * plugged in, so the pointer can flicker over content that redraws. */
 static const char laptopout[] = "eDP-1";
 static const float extrascale = 0.75;
 static const int screentemp = 4000;
@@ -108,7 +103,7 @@ static const int screentemp = 4000;
 /* brightness stays off the extra monitor's bar; the keys still change it */
 static const int statushide = 2;
 static const char **statusclicks[] = {
-	miccmd, NULL, NULL, cpuclick, cpuclick, netclick, NULL, NULL, NULL, NULL,
+	miccmd, NULL, NULL, btopcmd, btopcmd, netclick, NULL, NULL, NULL, NULL,
 };
 static const char **statusscrollup[] = {
 	NULL, volupcmd, brightupcmd, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
