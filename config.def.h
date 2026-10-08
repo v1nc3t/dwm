@@ -98,9 +98,9 @@ static const char *shotfull[] = { "maim", NULL };
 
 /* empty desktop is this color. dwm fills the root window. no wallpaper program. */
 static const char rootbg[] = "#000000";
-/* laptop panel, then the panel placed to its right. extrascale is text size: 1 native, lower is smaller. */
+/* laptop panel. Any other connected panel (HDMI or USB-C) is placed to its right.
+ * extrascale is text size on that panel: 1 native, lower is smaller. */
 static const char laptopout[] = "eDP-1";
-static const char extraout[] = "HDMI-1";
 static const float extrascale = 0.75;
 static const int screentemp = 4000;
 

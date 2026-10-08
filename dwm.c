@@ -1697,6 +1697,28 @@ findoutput(XRRScreenResources *res, const char *name, RROutput *id)
 	return NULL;
 }
 
+/* First connected panel that is not the laptop: HDMI or a USB-C DisplayPort. */
+static XRROutputInfo *
+findextra(XRRScreenResources *res, RROutput skip, RROutput *id)
+{
+	int i;
+	XRROutputInfo *oi;
+
+	for (i = 0; i < res->noutput; i++) {
+		if (res->outputs[i] == skip)
+			continue;
+		oi = XRRGetOutputInfo(dpy, res, res->outputs[i]);
+		if (!oi)
+			continue;
+		if (oi->connection == RR_Connected && oi->nmode > 0) {
+			*id = res->outputs[i];
+			return oi;
+		}
+		XRRFreeOutputInfo(oi);
+	}
+	return NULL;
+}
+
 static void
 setcrtcgamma(RRCrtc crtc)
 {
@@ -1779,7 +1801,7 @@ arrangemonitors(int probe)
 	if (!res)
 		goto out;
 	lap = findoutput(res, laptopout, &lid);
-	ext = findoutput(res, extraout, &xid);
+	ext = findextra(res, lid, &xid);
 	if (!lap || lap->connection != RR_Connected || lap->nmode < 1 || lap->ncrtc < 1)
 		goto out;
 	lcrtc = lap->crtc ? lap->crtc : lap->crtcs[0];
