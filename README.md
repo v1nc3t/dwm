@@ -19,7 +19,7 @@ git log --oneline upstream/master..master
 - A bottom stack layout (`TTT`): the master on top, the other windows side by side below.
 - Super+Left and Super+Right move to the previous or next tag.
 - Screenshots go to the clipboard (maim and xclip).
-- A second panel (HDMI or USB-C) is placed right of the laptop and scaled by `extrascale` when it is plugged in. Unplugging it turns that output off. Anything you change in arandr (F7) stays until the next plug.
+- A second panel (HDMI or USB-C) is placed right of the laptop and scaled by `extrascale` when it is plugged in. Unplugging it turns that output off. Anything you change in arandr (open it from rofi) stays until the next plug.
 - Every lit screen is warmed to 4000K (`screentemp`). No redshift needed.
 - Sound goes to the headphones if present, otherwise the laptop speakers, never the monitor.
 - The F row does its printed job on a plain press. Fn+F sends the real F key.
@@ -33,7 +33,7 @@ With Fn lock off (see `fnlock.rules`), a plain press does this:
 | Key | Does | The laptop sends |
 | --- | --- | --- |
 | F1 to F6 | mute, volume down, volume up, mic mute, brightness down, brightness up | XF86 media keys |
-| F7 | open arandr (display settings) | Super+p |
+| F7 | swap between tile and floating | Super+p |
 | F8 | airplane mode, handled by the kernel | the airplane key code |
 | F9 | swap between tile and floating | XF86Tools |
 | F10 | lock the screen (`dm-tool lock`) | Super+l |
