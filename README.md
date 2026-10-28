@@ -36,7 +36,7 @@ With Fn lock off (see `fnlock.rules`), a plain press does this:
 | F7 | swap between tile and floating | Super+p |
 | F8 | airplane mode, handled by the kernel | the airplane key code |
 | F9 | swap between tile and floating | Super+i |
-| F10 | grow the master area, same as Super+l | Super+l |
+| F10 | grow the master area, same as Super+l. Fn+F10 locks the screen (`dm-tool lock`) | Super+l |
 | F11 | swap between side by side (tile) and top/bottom (bottom stack `TTT`) | Ctrl+Alt+Tab |
 | F12 | open mate-calc | XF86Calculator |
 
@@ -48,7 +48,7 @@ F7, F9, F10 and F11 send the same codes as typing Super+p, Super+i, Super+l and 
 - A C compiler and make
 - qterminal, rofi, maim, xclip
 - PipeWire (`wpctl`), brightnessctl, NetworkManager (`nmtui`), btop
-- arandr, mate-calc
+- arandr, mate-calc, LightDM (`dm-tool`)
 - JetBrainsMono Nerd Font, so the bar icons render
 - slstatus, built separately: [v1nc3t/slstatus](https://github.com/v1nc3t/slstatus)
 

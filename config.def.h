@@ -90,6 +90,7 @@ static const char *statusscript[] = { "/home/vincent/.config/slstatus/slstatus",
 static const char *roficmd[] = { "rofi", "-show", "drun", "-theme", "/usr/share/rofi/themes/gruvbox-dark.rasi", NULL };
 static const char *shotsel[] = { "maim", "--select", NULL };
 static const char *shotfull[] = { "maim", NULL };
+static const char *lockcmd[] = { "dm-tool", "lock", NULL };
 static const char *calccmd[] = { "mate-calc", NULL };
 
 /* empty desktop is this color. dwm fills the root window. no wallpaper program. */
@@ -188,6 +189,7 @@ static const Key keys[] = {
 	{ MODKEY,                       XK_p,                      togglelayout, {.v = &layouts[1]} }, /* F7 */
 	{ MODKEY,                       XK_i,                      togglelayout, {.v = &layouts[1]} }, /* F9 */
 	{ ControlMask|Mod1Mask,         XK_Tab,                    togglelayout, {.v = &layouts[3]} }, /* F11 */
+	{ 0,                            XK_F10,                    spawn, {.v = lockcmd } },       /* real F10: Fn+F10 */
 	{ 0,                            XF86XK_Calculator,         spawn, {.v = calccmd } },       /* F12 */
 	{ 0,                            XK_Print,                  shot,  {.v = shotsel } },
 };

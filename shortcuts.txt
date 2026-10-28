@@ -68,6 +68,7 @@ F7                       swap between tile and floating
 F8                       airplane mode (kernel)
 F9                       swap between tile and floating
 F10                      grow master area
+Fn+F10                   lock the screen
 F11                      swap side by side and top/bottom split
 F12                      calculator (mate-calc)
 Print                    select a screen region and copy it to the clipboard
