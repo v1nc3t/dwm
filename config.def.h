@@ -90,7 +90,6 @@ static const char *statusscript[] = { "/home/vincent/.config/slstatus/slstatus",
 static const char *roficmd[] = { "rofi", "-show", "drun", "-theme", "/usr/share/rofi/themes/gruvbox-dark.rasi", NULL };
 static const char *shotsel[] = { "maim", "--select", NULL };
 static const char *shotfull[] = { "maim", NULL };
-static const char *lockcmd[] = { "dm-tool", "lock", NULL };
 static const char *calccmd[] = { "mate-calc", NULL };
 
 /* empty desktop is this color. dwm fills the root window. no wallpaper program. */
@@ -138,8 +137,8 @@ static const Key keys[] = {
 	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
 	{ MODKEY|ShiftMask,             XK_i,      incnmaster,     {.i = +1 } },
 	{ MODKEY|ShiftMask,             XK_d,      incnmaster,     {.i = -1 } },
-	{ MODKEY|ShiftMask,             XK_h,      setmfact,       {.f = -0.05} },
-	{ MODKEY|ShiftMask,             XK_l,      setmfact,       {.f = +0.05} },
+	{ MODKEY,                       XK_h,      setmfact,       {.f = -0.05} },
+	{ MODKEY,                       XK_l,      setmfact,       {.f = +0.05} },        /* also F10 */
 	{ MODKEY,                       XK_Tab,    view,           {0} },
 	{ MODKEY,                       XK_q,      killclient,     {0} },
 	{ MODKEY,                       XK_t,      setlayout,      {.v = &layouts[0]} },
@@ -188,7 +187,6 @@ static const Key keys[] = {
 	{ 0,                            XF86XK_MonBrightnessUp,    spawn, {.v = brightupcmd } },   /* F6 */
 	{ MODKEY,                       XK_p,                      togglelayout, {.v = &layouts[1]} }, /* F7 */
 	{ MODKEY,                       XK_i,                      togglelayout, {.v = &layouts[1]} }, /* F9 */
-	{ MODKEY,                       XK_l,                      spawn, {.v = lockcmd } },       /* F10 */
 	{ ControlMask|Mod1Mask,         XK_Tab,                    togglelayout, {.v = &layouts[3]} }, /* F11 */
 	{ 0,                            XF86XK_Calculator,         spawn, {.v = calccmd } },       /* F12 */
 	{ 0,                            XK_Print,                  shot,  {.v = shotsel } },

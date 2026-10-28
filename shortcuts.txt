@@ -9,7 +9,6 @@ Super+Ctrl+u             copy the whole screen to the clipboard
 Super+p                  swap between tile and floating, same as F7
 Super+i                  swap between tile and floating, same as F9
 Ctrl+Alt+Tab             swap tile and bottom stack, same as F11
-Super+l                  lock the screen, same as F10
 Alt+w                    Firefox
 Alt+f                    Thunar
 Alt+d                    Discord
@@ -23,8 +22,8 @@ Super+k                  focus previous window
 Super+Shift+Enter        move focused window to master
 Super+q                  close focused window
 Super+b                  show or hide the bar
-Super+Shift+h            shrink master area
-Super+Shift+l            grow master area
+Super+h                  shrink master area
+Super+l                  grow master area, same as F10
 Super+Shift+i            add a master slot
 Super+Shift+d            remove a master slot
 Super+Shift+Space        float or unfloat the focused window
@@ -68,7 +67,7 @@ F6                       brightness up
 F7                       swap between tile and floating
 F8                       airplane mode (kernel)
 F9                       swap between tile and floating
-F10                      lock the screen
+F10                      grow master area
 F11                      swap side by side and top/bottom split
 F12                      calculator (mate-calc)
 Print                    select a screen region and copy it to the clipboard
