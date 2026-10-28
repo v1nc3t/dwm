@@ -47,6 +47,8 @@ Super+Shift+0            put the focused window on every tag
 Super+Tab                go back to the previous tag view
 Super+Left               previous tag
 Super+Right              next tag
+Super+Shift+Left         move the focused window to the previous tag
+Super+Shift+Right        move the focused window to the next tag
 
 Monitors
 Super+,                  focus previous monitor

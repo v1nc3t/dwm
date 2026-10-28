@@ -239,6 +239,7 @@ static void updatestatus(void);
 static void updatetitle(Client *c);
 static void updatewindowtype(Client *c);
 static void updatewmhints(Client *c);
+static void shifttag(const Arg *arg);
 static void shiftview(const Arg *arg);
 static void view(const Arg *arg);
 static Client *wintoclient(Window w);
@@ -2700,18 +2701,33 @@ updatewmhints(Client *c)
 	}
 }
 
-void
-shiftview(const Arg *arg)
+/* the viewed tags moved by arg->i, wrapping from the last tag to the first */
+static unsigned int
+rotatedtags(const Arg *arg)
 {
-	Arg shifted;
 	unsigned int tagset = selmon->tagset[selmon->seltags];
 
 	if (arg->i > 0)
-		shifted.ui = (tagset << arg->i) | (tagset >> (LENGTH(tags) - arg->i));
+		tagset = (tagset << arg->i) | (tagset >> (LENGTH(tags) - arg->i));
 	else
-		shifted.ui = (tagset >> -arg->i) | (tagset << (LENGTH(tags) + arg->i));
-	shifted.ui &= TAGMASK;
-	view(&shifted);
+		tagset = (tagset >> -arg->i) | (tagset << (LENGTH(tags) + arg->i));
+	return tagset & TAGMASK;
+}
+
+void
+shifttag(const Arg *arg)
+{
+	Arg a = { .ui = rotatedtags(arg) };
+
+	tag(&a);
+}
+
+void
+shiftview(const Arg *arg)
+{
+	Arg a = { .ui = rotatedtags(arg) };
+
+	view(&a);
 }
 
 void

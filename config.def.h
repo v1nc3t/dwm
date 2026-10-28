@@ -166,6 +166,8 @@ static const Key keys[] = {
 	{ MODKEY|ControlMask,           XK_q,      quit,           {0} },
 	{ MODKEY,                       XK_Left,   shiftview,      {.i = -1 } },
 	{ MODKEY,                       XK_Right,  shiftview,      {.i = +1 } },
+	{ MODKEY|ShiftMask,             XK_Left,   shifttag,       {.i = -1 } },
+	{ MODKEY|ShiftMask,             XK_Right,  shifttag,       {.i = +1 } },
 	{ MODKEY,                       XK_c,      spawn,          {.v = roficmd } },
 	{ MODKEY,                       XK_u,      shot,           {.v = shotsel } },
 	{ MODKEY|ControlMask,           XK_u,      shot,           {.v = shotfull } },

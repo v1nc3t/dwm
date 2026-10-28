@@ -17,7 +17,7 @@ git log --oneline upstream/master..master
 - A colored status bar fed by [slstatus](https://tools.suckless.org/slstatus/): mic, volume, brightness, CPU, RAM, network, download, upload, battery, date and time. Click or scroll the fields to act on them.
 - Each tag remembers its own master width.
 - A bottom stack layout (`TTT`): the master on top, the other windows side by side below.
-- Super+Left and Super+Right move to the previous or next tag.
+- Super+Left and Super+Right move to the previous or next tag. Add Shift to send the focused window there instead.
 - Screenshots go to the clipboard (maim and xclip).
 - A second panel (HDMI or USB-C) is placed right of the laptop and scaled by `extrascale` when it is plugged in. Unplugging it turns that output off. Anything you change in arandr (open it from rofi) stays until the next plug.
 - Every lit screen is warmed to 4000K (`screentemp`). No redshift needed.
