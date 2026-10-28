@@ -89,6 +89,9 @@ static const char *statusscript[] = { "/home/vincent/.config/slstatus/slstatus",
 static const char *roficmd[] = { "rofi", "-show", "drun", "-theme", "/usr/share/rofi/themes/gruvbox-dark.rasi", NULL };
 static const char *shotsel[] = { "maim", "--select", NULL };
 static const char *shotfull[] = { "maim", NULL };
+static const char *displaycmd[] = { "arandr", NULL };
+static const char *lockcmd[] = { "dm-tool", "lock", NULL };
+static const char *calccmd[] = { "mate-calc", NULL };
 
 /* empty desktop is this color. dwm fills the root window. no wallpaper program. */
 static const char rootbg[] = "#000000";
@@ -135,8 +138,8 @@ static const Key keys[] = {
 	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
 	{ MODKEY,                       XK_i,      incnmaster,     {.i = +1 } },
 	{ MODKEY,                       XK_d,      incnmaster,     {.i = -1 } },
-	{ MODKEY,                       XK_h,      setmfact,       {.f = -0.05} },
-	{ MODKEY,                       XK_l,      setmfact,       {.f = +0.05} },
+	{ MODKEY|ShiftMask,             XK_h,      setmfact,       {.f = -0.05} },
+	{ MODKEY|ShiftMask,             XK_l,      setmfact,       {.f = +0.05} },
 	{ MODKEY,                       XK_Tab,    view,           {0} },
 	{ MODKEY,                       XK_q,      killclient,     {0} },
 	{ MODKEY,                       XK_t,      setlayout,      {.v = &layouts[0]} },
@@ -171,16 +174,20 @@ static const Key keys[] = {
 	{ Mod1Mask,                     XK_c,      spawn,          {.v = codecmd } },
 	{ Mod1Mask,                     XK_m,      spawn,          {.v = spotcmd } },
 	{ Mod1Mask,                     XK_b,      spawn,          {.v = btopcmd } },
-	/* media keys: a plain press on the F row while Fn lock is off */
-	{ 0,                            XF86XK_AudioMute,          spawn, {.v = mutecmd } },
-	{ 0,                            XF86XK_AudioLowerVolume,   spawn, {.v = voldowncmd } },
-	{ 0,                            XF86XK_AudioRaiseVolume,   spawn, {.v = volupcmd } },
-	{ 0,                            XF86XK_AudioMicMute,       spawn, {.v = miccmd } },
-	{ 0,                            XF86XK_MonBrightnessDown,  spawn, {.v = brightdowncmd } },
-	{ 0,                            XF86XK_MonBrightnessUp,    spawn, {.v = brightupcmd } },
+	/* F row with Fn lock off: a plain press sends these, Fn+F sends the real F key.
+	 * F7 and F10 send Super+p and Super+l, the same as typing them.
+	 * F8 (airplane mode) is handled by the kernel. F11 is left alone. */
+	{ 0,                            XF86XK_AudioMute,          spawn, {.v = mutecmd } },       /* F1 */
+	{ 0,                            XF86XK_AudioLowerVolume,   spawn, {.v = voldowncmd } },    /* F2 */
+	{ 0,                            XF86XK_AudioRaiseVolume,   spawn, {.v = volupcmd } },      /* F3 */
+	{ 0,                            XF86XK_AudioMicMute,       spawn, {.v = miccmd } },        /* F4 */
+	{ 0,                            XF86XK_MonBrightnessDown,  spawn, {.v = brightdowncmd } }, /* F5 */
+	{ 0,                            XF86XK_MonBrightnessUp,    spawn, {.v = brightupcmd } },   /* F6 */
+	{ MODKEY,                       XK_p,                      spawn, {.v = displaycmd } },    /* F7 */
+	{ 0,                            XF86XK_Tools,              cyclelayout, {0} },             /* F9 */
+	{ MODKEY,                       XK_l,                      spawn, {.v = lockcmd } },       /* F10 */
+	{ 0,                            XF86XK_Calculator,         spawn, {.v = calccmd } },       /* F12 */
 	{ 0,                            XK_Print,                  shot,  {.v = shotsel } },
-	/* F9 */
-	{ 0,                            XF86XK_Tools,              cyclelayout, {0} },
 };
 
 /* button definitions */
