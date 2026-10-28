@@ -878,17 +878,12 @@ void
 enternotify(XEvent *e)
 {
 	Client *c;
-	Monitor *m;
 	XCrossingEvent *ev = &e->xcrossing;
 
+	/* Focusing root here queues a FocusIn that yanks focus back during a fast move. */
 	if ((ev->mode != NotifyNormal || ev->detail == NotifyInferior) && ev->window != root)
 		return;
-	c = wintoclient(ev->window);
-	m = c ? c->mon : wintomon(ev->window);
-	if (m != selmon) {
-		unfocus(selmon->sel, 1);
-		selmon = m;
-	} else if (!c || c == selmon->sel)
+	if (!(c = wintoclient(ev->window)) || c == selmon->sel)
 		return;
 	focus(c);
 }
