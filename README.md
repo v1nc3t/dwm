@@ -49,7 +49,7 @@ F7 and F10 send the same codes as typing Super+p and Super+l, so those two short
 - PipeWire (`wpctl`), brightnessctl, NetworkManager (`nmtui`), btop
 - arandr, mate-calc, LightDM (`dm-tool`)
 - JetBrainsMono Nerd Font, so the bar icons render
-- slstatus, built separately (see below)
+- slstatus, built separately: [v1nc3t/slstatus](https://github.com/v1nc3t/slstatus)
 
 The Alt launch keys also expect Firefox, Thunar, Discord, VS Code (`code`) and Spotify. A missing program only affects its own key.
 
@@ -74,7 +74,7 @@ exec "$HOME/.config/dwm/dwm" "$@"
 
 Log out and choose the dwm session. A running dwm does not reload its binary.
 
-slstatus lives in its own tree, `~/.config/slstatus`. The path in `statusscript` in `config.def.h` must point at its binary. dwm starts it at login and stops it on quit.
+slstatus lives in its own tree, `~/.config/slstatus`, from [v1nc3t/slstatus](https://github.com/v1nc3t/slstatus). The path in `statusscript` in `config.def.h` must point at its binary. dwm starts it at login and stops it on quit.
 
 Install the Fn lock rule once. It applies at every boot:
 
