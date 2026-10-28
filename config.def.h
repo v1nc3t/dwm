@@ -21,6 +21,15 @@ static const char *colors[][3]      = {
 	[SchemeSel]     = { col_selfg,    col_selbg,    col_selborder },
 	[SchemeBarNorm] = { col_barfg,    col_barbg,    col_barborder },
 	[SchemeBarSel]  = { col_selfg,    col_selborder, col_selborder },
+	[SchemeMic]     = { "#b8bb26",    col_barbg,    col_barborder },
+	[SchemeAlert]   = { "#fb4934",    col_barbg,    col_barborder },
+	[SchemeVol]     = { "#fabd2f",    col_barbg,    col_barborder },
+	[SchemeBri]     = { "#fe8019",    col_barbg,    col_barborder },
+	[SchemeCpu]     = { "#83a598",    col_barbg,    col_barborder },
+	[SchemeRam]     = { "#d3869b",    col_barbg,    col_barborder },
+	[SchemeNet]     = { "#8ec07c",    col_barbg,    col_barborder },
+	[SchemeBat]     = { "#d79921",    col_barbg,    col_barborder },
+	[SchemeClk]     = { "#ebdbb2",    col_barbg,    col_barborder },
 };
 
 /* tagging */
@@ -75,7 +84,35 @@ static const char *volupcmd[] = { "wpctl", "set-volume", "-l", "1.67", "@DEFAULT
 static const char *miccmd[] = { "wpctl", "set-mute", "@DEFAULT_AUDIO_SOURCE@", "toggle", NULL };
 static const char *brightdowncmd[] = { "/usr/bin/brightnessctl", "set", "5%-", NULL };
 static const char *brightupcmd[] = { "/usr/bin/brightnessctl", "set", "+5%", NULL };
+static const char *netclick[] = { "qterminal", "-e", "nmtui", NULL };
+static const char *statusscript[] = { "/home/vincent/.config/slstatus/slstatus", NULL };
 static const char *roficmd[] = { "rofi", "-show", "drun", "-theme", "/usr/share/rofi/themes/gruvbox-dark.rasi", NULL };
+
+/* same order as slstatus: mic, vol, brightness, cpu, ram, network, down, up, battery, date/time */
+/* brightness stays off the extra monitor's bar; the keys still change it */
+static const int statushide = 2;
+static const char **statusclicks[] = {
+	miccmd, NULL, NULL, btopcmd, btopcmd, netclick, NULL, NULL, NULL, NULL,
+};
+static const char **statusscrollup[] = {
+	NULL, volupcmd, brightupcmd, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+};
+static const char **statusscrolldn[] = {
+	NULL, voldowncmd, brightdowncmd, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+};
+/* widest text each slot may show; the box stays this wide so neighbours do not move */
+static const char *statusslot[] = {
+	"\uf131 mic unmute",
+	"\uf028 vol 100%",
+	"\uf185 bri 100%",
+	"\uf2db cpu 100%",
+	"\uf233 ram 100%",
+	"\uf1eb net xxxxxxxxxxxxxx",
+	"\uf019 999.9 MiB/s",
+	"\uf093 999.9 MiB/s",
+	"\uf240 bat 100%",
+	"\uf017 Thu 01 Oct  15:43",
+};
 
 static const Key keys[] = {
 	/* modifier                     key        function        argument */

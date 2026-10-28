@@ -58,7 +58,9 @@
 
 /* enums */
 enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
-enum { SchemeNorm, SchemeSel, SchemeBarNorm, SchemeBarSel }; /* color schemes */
+enum { SchemeNorm, SchemeSel, SchemeBarNorm, SchemeBarSel,
+       SchemeMic, SchemeAlert, SchemeVol, SchemeBri, SchemeCpu, SchemeRam,
+       SchemeNet, SchemeBat, SchemeClk }; /* color schemes */
 enum { NetSupported, NetWMName, NetWMState, NetWMCheck,
        NetWMFullscreen, NetActiveWindow, NetWMWindowType,
        NetWMWindowTypeDialog, NetClientList, NetLast }; /* EWMH atoms */
@@ -162,6 +164,7 @@ static void detachstack(Client *c);
 static Monitor *dirtomon(int dir);
 static void drawbar(Monitor *m);
 static void drawbars(void);
+static int drawstatus(Monitor *m);
 static void enternotify(XEvent *e);
 static void expose(XEvent *e);
 static void focus(Client *c);
@@ -205,6 +208,7 @@ static void setup(void);
 static void seturgent(Client *c, int urg);
 static void showhide(Client *c);
 static void spawn(const Arg *arg);
+static void spawnstatus(void);
 static void tag(const Arg *arg);
 static void tagmon(const Arg *arg);
 static void tile(Monitor *m);
@@ -236,6 +240,9 @@ static void zoom(const Arg *arg);
 /* variables */
 static const char broken[] = "broken";
 static char stext[256];
+static int statx[16], statw[16];
+static unsigned int statn;
+static pid_t statuspid;
 static int screen;
 static int sw, sh;           /* X display screen geometry width, height */
 static int bh;               /* bar height */
@@ -441,9 +448,26 @@ buttonpress(XEvent *e)
 			arg.ui = 1 << i;
 		} else if (ev->x < x + TEXTW(selmon->ltsymbol))
 			click = ClkLtSymbol;
-		else if (ev->x > selmon->ww - (int)TEXTW(stext) + lrpad - 2)
+		else if (statn > 0 && ev->x >= statx[0]) {
 			click = ClkStatusText;
-		else
+			for (i = 0; i < statn && i < LENGTH(statusclicks); i++) {
+				if (statw[i] < 1)
+					continue;
+				if (ev->x < statx[i] + statw[i]) {
+					if (ev->button == Button4 && i < LENGTH(statusscrollup) && statusscrollup[i])
+						arg.v = statusscrollup[i];
+					else if (ev->button == Button5 && i < LENGTH(statusscrolldn) && statusscrolldn[i])
+						arg.v = statusscrolldn[i];
+					else if (ev->button == Button1 && statusclicks[i] && statusclicks[i][0])
+						arg.v = statusclicks[i];
+					if (arg.v) {
+						spawn(&arg);
+						return;
+					}
+					break;
+				}
+			}
+		} else
 			click = ClkWinTitle;
 	} else if ((c = wintoclient(ev->window))) {
 		focus(c);
@@ -476,6 +500,8 @@ cleanup(void)
 	Monitor *m;
 	size_t i;
 
+	if (statuspid > 0)
+		kill(statuspid, SIGTERM);
 	view(&a);
 	selmon->lt[selmon->sellt] = &foo;
 	for (m = mons; m; m = m->next)
@@ -699,6 +725,67 @@ dirtomon(int dir)
 	return m;
 }
 
+static int
+drawstatus(Monitor *m)
+{
+	char buf[sizeof stext];
+	char *blk[16], *s;
+	int i, x, tw = 0;
+
+	int gap = drw_fontset_getwidth(drw, " ") * 6 / 5; /* 30% of the old 4-space gap */
+
+	memcpy(buf, stext, sizeof buf);
+	statn = 0;
+	blk[statn++] = buf;
+	s = buf;
+	while (statn < LENGTH(blk) && (s = strchr(s, '\x1f'))) {
+		*s++ = '\0';
+		blk[statn++] = s;
+	}
+	int vis[16], nvis = 0;
+
+	for (i = 0; i < (int)statn; i++) {
+		if (m->mx > 0 && i == statushide) {
+			statw[i] = 0;
+			statx[i] = -1;
+			continue;
+		}
+		if (i < LENGTH(statusslot))
+			statw[i] = TEXTW(statusslot[i]) - lrpad + 2;
+		else
+			statw[i] = TEXTW(blk[i]) - lrpad + 2;
+		if (statw[i] < 2)
+			statw[i] = 2;
+		vis[nvis++] = i;
+		tw += statw[i];
+	}
+	if (nvis > 1)
+		tw += gap * (nvis - 1);
+	x = m->ww - tw;
+	for (i = 0; i < nvis; i++) {
+		static const int schtab[] = {
+			SchemeMic, SchemeVol, SchemeBri, SchemeCpu, SchemeRam, SchemeNet, SchemeNet, SchemeNet, SchemeBat, SchemeClk,
+		};
+		int slot = vis[i];
+		int sch = slot < LENGTH(schtab) ? schtab[slot] : SchemeBarNorm;
+
+		statx[slot] = x;
+		if (slot == 0)
+			sch = strstr(blk[slot], "unmute") ? SchemeMic : SchemeAlert;
+		else if (slot == 1 && strstr(blk[slot], "mute"))
+			sch = SchemeAlert;
+		drw_setscheme(drw, scheme[sch]);
+		drw_text(drw, x, 0, statw[slot], bh, 0, blk[slot], 0);
+		x += statw[slot];
+		if (gap && i + 1 < nvis) {
+			drw_setscheme(drw, scheme[SchemeBarNorm]);
+			drw_rect(drw, x, 0, gap, bh, 1, 1);
+			x += gap;
+		}
+	}
+	return tw;
+}
+
 void
 drawbar(Monitor *m)
 {
@@ -712,11 +799,8 @@ drawbar(Monitor *m)
 		return;
 
 	/* draw status first so it can be overdrawn by tags later */
-	if (m == selmon) { /* status is only drawn on selected monitor */
-		drw_setscheme(drw, scheme[SchemeBarNorm]);
-		tw = TEXTW(stext) - lrpad + 2; /* 2px right padding */
-		drw_text(drw, m->ww - tw, 0, tw, bh, 0, stext, 0);
-	}
+	if (m == selmon)
+		tw = drawstatus(m);
 
 	for (c = m->clients; c; c = c->next) {
 		occ |= c->tags;
@@ -1616,6 +1700,7 @@ setup(void)
 	XSelectInput(dpy, root, wa.event_mask);
 	grabkeys();
 	focus(NULL);
+	spawnstatus();
 }
 
 void
@@ -1647,6 +1732,25 @@ showhide(Client *c)
 		showhide(c->snext);
 		XMoveWindow(dpy, c->win, WIDTH(c) * -2, c->y);
 	}
+}
+
+static void
+spawnstatus(void)
+{
+	struct sigaction sa;
+
+	statuspid = fork();
+	if (statuspid != 0)
+		return;
+	if (dpy)
+		close(ConnectionNumber(dpy));
+	setsid();
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = 0;
+	sa.sa_handler = SIG_DFL;
+	sigaction(SIGCHLD, &sa, NULL);
+	execvp(statusscript[0], (char **)statusscript);
+	die("dwm: execvp '%s' failed:", statusscript[0]);
 }
 
 void
