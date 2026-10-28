@@ -12,10 +12,15 @@ static const char col_border[]     = "#3c3836";
 static const char col_selbg[]      = "#d79921";
 static const char col_selfg[]      = "#282828";
 static const char col_selborder[]  = "#fe8019";
+static const char col_barbg[]      = "#222222";
+static const char col_barfg[]      = "#bbbbbb";
+static const char col_barborder[]  = "#444444";
 static const char *colors[][3]      = {
 	/*                  fg            bg            border   */
 	[SchemeNorm]    = { col_fg,       col_bg,       col_border },
 	[SchemeSel]     = { col_selfg,    col_selbg,    col_selborder },
+	[SchemeBarNorm] = { col_barfg,    col_barbg,    col_barborder },
+	[SchemeBarSel]  = { col_selfg,    col_selborder, col_selborder },
 };
 
 /* tagging */
