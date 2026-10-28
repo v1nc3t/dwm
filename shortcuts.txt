@@ -6,7 +6,8 @@ Super+Enter              terminal (qterminal)
 Super+c                  application launcher (rofi)
 Super+u                  select a region and copy it to the clipboard
 Super+Ctrl+u             copy the whole screen to the clipboard
-Super+p                  swap between tile and floating, same as F7
+Super+p                  display settings (arandr), same as F7
+Ctrl+Alt+Tab             swap tile and bottom stack, same as F11
 Super+l                  lock the screen, same as F10
 Alt+w                    Firefox
 Alt+f                    Thunar
@@ -32,8 +33,8 @@ Super+t                  tile
 Super+f                  floating
 Super+m                  monocle
 Super+Space              swap between the last two layouts
-F7                       swap between tile and floating
-F9                       swap between tile and bottom stack (top/bottom split)
+F9                       swap between tile and floating
+F11                      swap between tile and bottom stack (top/bottom split)
 
 Tags
 Super+1 .. Super+9       show that tag
@@ -61,11 +62,11 @@ F3                       volume up
 F4                       mute microphone
 F5                       brightness down
 F6                       brightness up
-F7                       swap between tile and floating
+F7                       display settings (arandr)
 F8                       airplane mode (kernel)
-F9                       swap side by side and top/bottom split
+F9                       swap between tile and floating
 F10                      lock the screen
-F11                      not used by dwm
+F11                      swap side by side and top/bottom split
 F12                      calculator (mate-calc)
 Print                    select a screen region and copy it to the clipboard
 
