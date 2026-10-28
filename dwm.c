@@ -230,6 +230,7 @@ static void updatestatus(void);
 static void updatetitle(Client *c);
 static void updatewindowtype(Client *c);
 static void updatewmhints(Client *c);
+static void shiftview(const Arg *arg);
 static void view(const Arg *arg);
 static Client *wintoclient(Window w);
 static Monitor *wintomon(Window w);
@@ -2179,6 +2180,20 @@ updatewmhints(Client *c)
 			c->neverfocus = 0;
 		XFree(wmh);
 	}
+}
+
+void
+shiftview(const Arg *arg)
+{
+	Arg shifted;
+	unsigned int tagset = selmon->tagset[selmon->seltags];
+
+	if (arg->i > 0)
+		shifted.ui = (tagset << arg->i) | (tagset >> (LENGTH(tags) - arg->i));
+	else
+		shifted.ui = (tagset >> -arg->i) | (tagset << (LENGTH(tags) + arg->i));
+	shifted.ui &= TAGMASK;
+	view(&shifted);
 }
 
 void

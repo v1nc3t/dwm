@@ -148,6 +148,8 @@ static const Key keys[] = {
 	TAGKEYS(                        XK_8,                      7)
 	TAGKEYS(                        XK_9,                      8)
 	{ MODKEY|ShiftMask,             XK_q,      quit,           {0} },
+	{ MODKEY,                       XK_Left,   shiftview,      {.i = -1 } },
+	{ MODKEY,                       XK_Right,  shiftview,      {.i = +1 } },
 	{ MODKEY,                       XK_c,      spawn,          {.v = roficmd } },
 	{ Mod1Mask,                     XK_w,      spawn,          {.v = firefoxcmd } },
 	{ Mod1Mask,                     XK_f,      spawn,          {.v = filecmd } },
