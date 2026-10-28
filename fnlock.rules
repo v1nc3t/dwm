@@ -1,0 +1,4 @@
+# Lenovo IdeaPad: Fn lock off at boot. A plain F-row press then sends the media
+# and hotkey codes that config.def.h binds; Fn+F sends the real F key.
+# Fn+Esc still toggles it for the current session.
+ACTION=="add", SUBSYSTEM=="leds", KERNEL=="platform::fnlock", ATTR{brightness}="0"
