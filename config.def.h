@@ -179,6 +179,8 @@ static const Key keys[] = {
 	{ 0,                            XF86XK_MonBrightnessDown,  spawn, {.v = brightdowncmd } },
 	{ 0,                            XF86XK_MonBrightnessUp,    spawn, {.v = brightupcmd } },
 	{ 0,                            XK_Print,                  shot,  {.v = shotsel } },
+	/* F9 */
+	{ 0,                            XF86XK_Tools,              cyclelayout, {0} },
 };
 
 /* button definitions */
