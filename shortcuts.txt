@@ -80,3 +80,4 @@ Left-click network       open nmtui
 
 Quit
 Super+Shift+q            quit dwm (closes every window)
+Super+Ctrl+q             quit dwm (closes every window)
