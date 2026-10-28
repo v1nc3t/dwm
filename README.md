@@ -16,6 +16,7 @@ git log --oneline upstream/master..master
 - Gruvbox window borders. The bar is gray, and only the selected tag is orange.
 - A colored status bar fed by [slstatus](https://tools.suckless.org/slstatus/): mic, volume, brightness, CPU, RAM, network, download, upload, battery, date and time. Click or scroll the fields to act on them.
 - Each tag remembers its own master width.
+- A bottom stack layout (`TTT`): the master on top, the other windows side by side below.
 - Super+Left and Super+Right move to the previous or next tag.
 - Screenshots go to the clipboard (maim and xclip).
 - A second panel (HDMI or USB-C) is placed right of the laptop and scaled by `extrascale` when it is plugged in. Unplugging it turns that output off. Anything you change in arandr (open it from rofi) stays until the next plug.
@@ -34,7 +35,7 @@ With Fn lock off (see `fnlock.rules`), a plain press does this:
 | F1 to F6 | mute, volume down, volume up, mic mute, brightness down, brightness up | XF86 media keys |
 | F7 | swap between tile and floating | Super+p |
 | F8 | airplane mode, handled by the kernel | the airplane key code |
-| F9 | next layout: tile, floating, monocle | XF86Tools |
+| F9 | swap between side by side (tile) and top/bottom (bottom stack `TTT`) | XF86Tools |
 | F10 | lock the screen (`dm-tool lock`) | Super+l |
 | F11 | nothing in dwm, the focused app gets it | Ctrl+Alt+Tab |
 | F12 | open mate-calc | XF86Calculator |

@@ -152,6 +152,7 @@ static void arrange(Monitor *m);
 static void arrangemon(Monitor *m);
 static void attach(Client *c);
 static void attachstack(Client *c);
+static void bstack(Monitor *m);
 static void buttonpress(XEvent *e);
 static void checkotherwm(void);
 static void cleanup(void);
@@ -161,7 +162,6 @@ static void configure(Client *c);
 static void configurenotify(XEvent *e);
 static void configurerequest(XEvent *e);
 static Monitor *createmon(void);
-static void cyclelayout(const Arg *arg);
 static void destroynotify(XEvent *e);
 static void detach(Client *c);
 static void detachstack(Client *c);
@@ -223,7 +223,7 @@ static void tagmon(const Arg *arg);
 static void tile(Monitor *m);
 static void togglebar(const Arg *arg);
 static void togglefloating(const Arg *arg);
-static void toggletilefloat(const Arg *arg);
+static void togglelayout(const Arg *arg);
 static void toggletag(const Arg *arg);
 static void toggleview(const Arg *arg);
 static void unfocus(Client *c, int setfocus);
@@ -708,18 +708,6 @@ createmon(void)
 	strncpy(m->ltsymbol, layouts[0].symbol, sizeof(m->ltsymbol) - 1);
 	m->ltsymbol[sizeof(m->ltsymbol) - 1] = '\0';
 	return m;
-}
-
-void
-cyclelayout(const Arg *arg)
-{
-	Arg a;
-	unsigned int i;
-
-	for (i = 0; i < LENGTH(layouts) - 1 && selmon->lt[selmon->sellt] != &layouts[i]; i++)
-		;
-	a.v = &layouts[(i + 1) % LENGTH(layouts)];
-	setlayout(&a);
 }
 
 void
@@ -2334,6 +2322,35 @@ tile(Monitor *m)
 		}
 }
 
+/* tile() turned on its side: master row on top, the rest side by side below */
+void
+bstack(Monitor *m)
+{
+	unsigned int i, n, w, mh, mx, tx;
+	Client *c;
+
+	for (n = 0, c = nexttiled(m->clients); c; c = nexttiled(c->next), n++);
+	if (n == 0)
+		return;
+
+	if (n > m->nmaster)
+		mh = m->nmaster ? m->wh * m->mfact : 0;
+	else
+		mh = m->wh;
+	for (i = mx = tx = 0, c = nexttiled(m->clients); c; c = nexttiled(c->next), i++)
+		if (i < m->nmaster) {
+			w = (m->ww - mx) / (MIN(n, m->nmaster) - i);
+			resize(c, m->wx + mx, m->wy, w - (2*c->bw), mh - (2*c->bw), 0);
+			if (mx + WIDTH(c) < m->ww)
+				mx += WIDTH(c);
+		} else {
+			w = (m->ww - tx) / (n - i);
+			resize(c, m->wx + tx, m->wy + mh, w - (2*c->bw), m->wh - mh - (2*c->bw), 0);
+			if (tx + WIDTH(c) < m->ww)
+				tx += WIDTH(c);
+		}
+}
+
 void
 togglebar(const Arg *arg)
 {
@@ -2357,11 +2374,11 @@ togglefloating(const Arg *arg)
 	arrange(selmon);
 }
 
-/* tile <-> floating; from any other layout go to tile */
+/* switch to the arg layout, or back to tile if it is already showing */
 void
-toggletilefloat(const Arg *arg)
+togglelayout(const Arg *arg)
 {
-	Arg a = { .v = &layouts[selmon->lt[selmon->sellt] == &layouts[0]] };
+	Arg a = { .v = selmon->lt[selmon->sellt] == arg->v ? &layouts[0] : arg->v };
 
 	setlayout(&a);
 }

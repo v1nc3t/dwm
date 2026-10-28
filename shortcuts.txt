@@ -32,7 +32,8 @@ Super+t                  tile
 Super+f                  floating
 Super+m                  monocle
 Super+Space              swap between the last two layouts
-F9                       next layout: tile, floating, monocle
+F7                       swap between tile and floating
+F9                       swap between tile and bottom stack (top/bottom split)
 
 Tags
 Super+1 .. Super+9       show that tag
@@ -62,7 +63,7 @@ F5                       brightness down
 F6                       brightness up
 F7                       swap between tile and floating
 F8                       airplane mode (kernel)
-F9                       next layout
+F9                       swap side by side and top/bottom split
 F10                      lock the screen
 F11                      not used by dwm
 F12                      calculator (mate-calc)
