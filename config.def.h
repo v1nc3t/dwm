@@ -136,8 +136,8 @@ static const Key keys[] = {
 	{ MODKEY,                       XK_b,      togglebar,      {0} },
 	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
 	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
-	{ MODKEY,                       XK_i,      incnmaster,     {.i = +1 } },
-	{ MODKEY,                       XK_d,      incnmaster,     {.i = -1 } },
+	{ MODKEY|ShiftMask,             XK_i,      incnmaster,     {.i = +1 } },
+	{ MODKEY|ShiftMask,             XK_d,      incnmaster,     {.i = -1 } },
 	{ MODKEY|ShiftMask,             XK_h,      setmfact,       {.f = -0.05} },
 	{ MODKEY|ShiftMask,             XK_l,      setmfact,       {.f = +0.05} },
 	{ MODKEY,                       XK_Tab,    view,           {0} },
@@ -176,7 +176,7 @@ static const Key keys[] = {
 	{ Mod1Mask,                     XK_m,      spawn,          {.v = spotcmd } },
 	{ Mod1Mask,                     XK_b,      spawn,          {.v = btopcmd } },
 	/* F row with Fn lock off: a plain press sends these, Fn+F sends the real F key.
-	 * F7, F10 and F11 send Super+p, Super+l and Ctrl+Alt+Tab, the same as typing them.
+	 * F7, F9, F10 and F11 send Super+p, Super+i, Super+l and Ctrl+Alt+Tab, the same as typing them.
 	 * F8 (airplane mode) is handled by the kernel. */
 	{ 0,                            XF86XK_AudioMute,          spawn, {.v = mutecmd } },       /* F1 */
 	{ 0,                            XF86XK_AudioLowerVolume,   spawn, {.v = voldowncmd } },    /* F2 */
@@ -185,7 +185,7 @@ static const Key keys[] = {
 	{ 0,                            XF86XK_MonBrightnessDown,  spawn, {.v = brightdowncmd } }, /* F5 */
 	{ 0,                            XF86XK_MonBrightnessUp,    spawn, {.v = brightupcmd } },   /* F6 */
 	{ MODKEY,                       XK_p,                      togglelayout, {.v = &layouts[1]} }, /* F7 */
-	{ 0,                            XF86XK_Tools,              togglelayout, {.v = &layouts[1]} }, /* F9 */
+	{ MODKEY,                       XK_i,                      togglelayout, {.v = &layouts[1]} }, /* F9 */
 	{ MODKEY,                       XK_l,                      spawn, {.v = lockcmd } },       /* F10 */
 	{ ControlMask|Mod1Mask,         XK_Tab,                    togglelayout, {.v = &layouts[3]} }, /* F11 */
 	{ 0,                            XF86XK_Calculator,         spawn, {.v = calccmd } },       /* F12 */

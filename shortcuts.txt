@@ -7,6 +7,7 @@ Super+c                  application launcher (rofi)
 Super+u                  select a region and copy it to the clipboard
 Super+Ctrl+u             copy the whole screen to the clipboard
 Super+p                  swap between tile and floating, same as F7
+Super+i                  swap between tile and floating, same as F9
 Ctrl+Alt+Tab             swap tile and bottom stack, same as F11
 Super+l                  lock the screen, same as F10
 Alt+w                    Firefox
@@ -24,8 +25,8 @@ Super+q                  close focused window
 Super+b                  show or hide the bar
 Super+Shift+h            shrink master area
 Super+Shift+l            grow master area
-Super+i                  add a master slot
-Super+d                  remove a master slot
+Super+Shift+i            add a master slot
+Super+Shift+d            remove a master slot
 Super+Shift+Space        float or unfloat the focused window
 
 Layouts
