@@ -210,6 +210,7 @@ static void setmfact(const Arg *arg);
 static int arrangemonitors(void);
 static void screenchange(XEvent *e);
 static void setrootcolor(void);
+static void setspeaker(void);
 static void setup(void);
 static void seturgent(Client *c, int urg);
 static void showhide(Client *c);
@@ -254,6 +255,8 @@ static pid_t statuspid;
 static int screen;
 static int rrbase;
 static int rootdone;
+static int unmuted;
+static char speakid[16] = "0";
 static int sw, sh;           /* X display screen geometry width, height */
 static int bh;               /* bar height */
 static int lrpad;            /* sum of left and right padding for text */
@@ -1958,6 +1961,96 @@ setrootcolor(void)
 	rootdone = 1;
 }
 
+static int
+cmdout(char *const argv[], char *out, size_t n)
+{
+	int fd[2];
+	ssize_t r, got = 0;
+	pid_t pid;
+
+	if (pipe(fd) < 0)
+		return -1;
+	pid = fork();
+	if (pid < 0) {
+		close(fd[0]);
+		close(fd[1]);
+		return -1;
+	}
+	if (pid == 0) {
+		dup2(fd[1], STDOUT_FILENO);
+		close(fd[0]);
+		close(fd[1]);
+		if (dpy)
+			close(ConnectionNumber(dpy));
+		execvp(argv[0], argv);
+		_exit(127);
+	}
+	close(fd[1]);
+	while ((r = read(fd[0], out + got, n - 1 - got)) > 0) {
+		got += r;
+		if (got >= (ssize_t)n - 1)
+			break;
+	}
+	/* drain so wpctl can exit if the buffer filled */
+	if (got >= (ssize_t)n - 1) {
+		char junk;
+		while (read(fd[0], &junk, 1) > 0)
+			;
+	}
+	close(fd[0]);
+	out[got] = '\0';
+	return got > 0 ? 0 : -1;
+}
+
+/* Headphones if that sink exists, otherwise the laptop speaker. Never the display. */
+static void
+setspeaker(void)
+{
+	static char st[16384];
+	char *p, *nl;
+	int sinks = 0, hp = 0, sp = 0, id;
+	Arg a;
+	static char *statargv[] = { "wpctl", "status", NULL };
+	static const char *defcmd[] = { "wpctl", "set-default", speakid, NULL };
+	static const char *sinkon[] = { "wpctl", "set-mute", speakid, "0", NULL };
+	static const char *mixon[] = { "amixer", "-q", "-c", "0", "sset", "Master", "on", NULL };
+	static const char *spkon[] = { "amixer", "-q", "-c", "0", "sset", "Speaker", "on", NULL };
+
+	if (cmdout(statargv, st, sizeof st) < 0)
+		return;
+	for (p = st; p && *p; p = nl ? nl + 1 : NULL) {
+		nl = strchr(p, '\n');
+		if (nl)
+			*nl = '\0';
+		if (strstr(p, "Sinks:"))
+			sinks = 1;
+		else if (sinks && strstr(p, "Sources:"))
+			sinks = 0;
+		else if (sinks && strstr(p, "cAVS")) {
+			id = atoi(p + strcspn(p, "0123456789"));
+			if (strstr(p, "Headphones"))
+				hp = id;
+			else if (strstr(p, "Speaker"))
+				sp = id;
+		}
+	}
+	id = hp ? hp : sp;
+	if (!id)
+		return;
+	snprintf(speakid, sizeof speakid, "%d", id);
+	a.v = defcmd;
+	spawn(&a);
+	if (!unmuted) {
+		a.v = sinkon;
+		spawn(&a);
+		a.v = mixon;
+		spawn(&a);
+		a.v = spkon;
+		spawn(&a);
+		unmuted = 1;
+	}
+}
+
 static void
 screenchange(XEvent *e)
 {
@@ -1970,7 +2063,8 @@ screenchange(XEvent *e)
 		XRRUpdateConfiguration(&ev);
 	while (XCheckTypedEvent(dpy, rrbase + RRNotify, &ev))
 		;
-	arrangemonitors();
+	if (arrangemonitors())
+		setspeaker();
 }
 
 void
@@ -2060,6 +2154,7 @@ setup(void)
 	}
 	setrootcolor();
 	arrangemonitors();
+	setspeaker();
 }
 
 void
