@@ -22,6 +22,7 @@
  */
 #include <errno.h>
 #include <locale.h>
+#include <math.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -36,6 +37,7 @@
 #include <X11/Xlib.h>
 #include <X11/Xproto.h>
 #include <X11/Xutil.h>
+#include <X11/extensions/Xrandr.h>
 #ifdef XINERAMA
 #include <X11/extensions/Xinerama.h>
 #endif /* XINERAMA */
@@ -205,6 +207,9 @@ static void setfocus(Client *c);
 static void setfullscreen(Client *c, int fullscreen);
 static void setlayout(const Arg *arg);
 static void setmfact(const Arg *arg);
+static int arrangemonitors(void);
+static void screenchange(XEvent *e);
+static void setrootcolor(void);
 static void setup(void);
 static void seturgent(Client *c, int urg);
 static void showhide(Client *c);
@@ -247,6 +252,9 @@ static int statx[16], statw[16];
 static unsigned int statn;
 static pid_t statuspid;
 static int screen;
+static int rrbase;
+static int rootdone;
+static int warmed;
 static int sw, sh;           /* X display screen geometry width, height */
 static int bh;               /* bar height */
 static int lrpad;            /* sum of left and right padding for text */
@@ -597,6 +605,8 @@ configurenotify(XEvent *e)
 		sw = ev->width;
 		sh = ev->height;
 		if (updategeom() || dirty) {
+			if (dirty)
+				setrootcolor();
 			drw_resize(drw, sw, bh);
 			updatebars();
 			for (m = mons; m; m = m->next) {
@@ -1492,9 +1502,12 @@ run(void)
 	XEvent ev;
 	/* main event loop */
 	XSync(dpy, False);
-	while (running && !XNextEvent(dpy, &ev))
-		if (handler[ev.type])
+	while (running && !XNextEvent(dpy, &ev)) {
+		if (rrbase && (ev.type == rrbase + RRScreenChangeNotify || ev.type == rrbase + RRNotify))
+			screenchange(&ev);
+		else if (ev.type < LASTEvent && handler[ev.type])
 			handler[ev.type](&ev); /* call handler */
+	}
 }
 
 void
@@ -1644,6 +1657,305 @@ setmfact(const Arg *arg)
 	arrange(selmon);
 }
 
+static XRRModeInfo *
+modebyid(XRRScreenResources *res, RRMode id)
+{
+	int i;
+
+	for (i = 0; i < res->nmode; i++)
+		if (res->modes[i].id == id)
+			return &res->modes[i];
+	return NULL;
+}
+
+static XRROutputInfo *
+findoutput(XRRScreenResources *res, const char *name, RROutput *id)
+{
+	int i;
+	XRROutputInfo *oi;
+
+	for (i = 0; i < res->noutput; i++) {
+		oi = XRRGetOutputInfo(dpy, res, res->outputs[i]);
+		if (!oi)
+			continue;
+		if (!strcmp(oi->name, name)) {
+			*id = res->outputs[i];
+			return oi;
+		}
+		XRRFreeOutputInfo(oi);
+	}
+	return NULL;
+}
+
+/* First connected panel that is not the laptop: HDMI or a USB-C DisplayPort. */
+static XRROutputInfo *
+findextra(XRRScreenResources *res, RROutput skip, RROutput *id)
+{
+	int i;
+	XRROutputInfo *oi;
+
+	for (i = 0; i < res->noutput; i++) {
+		if (res->outputs[i] == skip)
+			continue;
+		oi = XRRGetOutputInfo(dpy, res, res->outputs[i]);
+		if (!oi)
+			continue;
+		if (oi->connection == RR_Connected && oi->nmode > 0) {
+			*id = res->outputs[i];
+			return oi;
+		}
+		XRRFreeOutputInfo(oi);
+	}
+	return NULL;
+}
+
+static void
+setcrtcgamma(RRCrtc crtc)
+{
+	int size, i, r, g, b;
+	double t, rr, gg, bb, v;
+	XRRCrtcGamma *ga;
+
+	if (screentemp <= 0 || !crtc)
+		return;
+	size = XRRGetCrtcGammaSize(dpy, crtc);
+	if (size < 2)
+		return;
+	t = screentemp / 100.0;
+	if (t <= 66) {
+		rr = 255;
+		gg = 99.4708025861 * log(t) - 161.1195681661;
+		bb = t <= 19 ? 0 : 138.5177312231 * log(t - 10) - 305.0447927307;
+	} else {
+		rr = 329.698727446 * pow(t - 60, -0.1332047592);
+		gg = 288.1221695283 * pow(t - 60, -0.0755148492);
+		bb = 255;
+	}
+	r = rr < 0 ? 0 : rr > 255 ? 255 : (int)(rr + 0.5);
+	g = gg < 0 ? 0 : gg > 255 ? 255 : (int)(gg + 0.5);
+	b = bb < 0 ? 0 : bb > 255 ? 255 : (int)(bb + 0.5);
+	ga = XRRAllocGamma(size);
+	for (i = 0; i < size; i++) {
+		v = (double)i / (double)(size - 1);
+		ga->red[i] = (unsigned short)(v * r / 255.0 * 65535);
+		ga->green[i] = (unsigned short)(v * g / 255.0 * 65535);
+		ga->blue[i] = (unsigned short)(v * b / 255.0 * 65535);
+	}
+	XRRSetCrtcGamma(dpy, crtc, ga);
+	XRRFreeGamma(ga);
+}
+
+static int
+scaledok(RRCrtc crtc, double s)
+{
+	XRRCrtcTransformAttributes *ta = NULL;
+	double got;
+
+	if (!XRRGetCrtcTransform(dpy, crtc, &ta) || !ta)
+		return 0;
+	got = XFixedToDouble(ta->currentTransform.matrix[0][0]);
+	XFree(ta);
+	return got > s - 0.02 && got < s + 0.02;
+}
+
+static void
+setscale(RRCrtc crtc, double s)
+{
+	XTransform tr;
+
+	memset(&tr, 0, sizeof tr);
+	tr.matrix[0][0] = XDoubleToFixed(s);
+	tr.matrix[1][1] = XDoubleToFixed(s);
+	tr.matrix[2][2] = XDoubleToFixed(1.0);
+	XRRSetCrtcTransform(dpy, crtc, &tr, "bilinear", NULL, 0);
+}
+
+/* Laptop at 0,0. Extra panel to its right, scaled from extrascale. Gamma from screentemp.
+ * Returns 1 when the extra panel was plugged in, unplugged or swapped. */
+static int
+arrangemonitors(void)
+{
+	static RROutput lastxid;
+	XRRScreenResources *res;
+	XRROutputInfo *lap = NULL, *ext = NULL;
+	XRRCrtcInfo *ci;
+	XRRModeInfo *em, *hm = NULL;
+	RROutput lid = 0, xid = 0, one;
+	RRCrtc lcrtc, xcrtc = 0;
+	int i, ew = 0, eh = 0, hw = 0, hh = 0, fw, fh, minw, minh, maxw, maxh, changed = 0, plugged;
+	int scrw, scrh, mmw, mmh;
+	double scale;
+
+	if (!rrbase)
+		return 0;
+	/* Never XRRGetScreenResources: the server already re-probes on hotplug, and a
+	 * probe here stalls X (and wakes the NVIDIA GPU) on every event. */
+	if (!(res = XRRGetScreenResourcesCurrent(dpy, root)))
+		return 0;
+	lap = findoutput(res, laptopout, &lid);
+	ext = findextra(res, lid, &xid);
+	if (!lap || lap->connection != RR_Connected || lap->nmode < 1 || lap->ncrtc < 1)
+		goto out;
+	lcrtc = lap->crtc ? lap->crtc : lap->crtcs[0];
+	ci = XRRGetCrtcInfo(dpy, res, lcrtc);
+	em = (ci && ci->mode) ? modebyid(res, ci->mode) : modebyid(res, lap->modes[0]);
+	if (ci)
+		XRRFreeCrtcInfo(ci);
+	if (!em)
+		goto out;
+	ew = (int)em->width;
+	eh = (int)em->height;
+	scale = extrascale > 0.1 ? 1.0 / extrascale : 1.0;
+	if (ext) {
+		hm = modebyid(res, ext->modes[0]);
+		xcrtc = ext->crtc != lcrtc ? ext->crtc : 0;
+		for (i = 0; i < ext->ncrtc && !xcrtc; i++) {
+			if (ext->crtcs[i] == lcrtc)
+				continue;
+			ci = XRRGetCrtcInfo(dpy, res, ext->crtcs[i]);
+			if (ci && ci->noutput == 0)
+				xcrtc = ext->crtcs[i];
+			if (ci)
+				XRRFreeCrtcInfo(ci);
+		}
+		/* no free CRTC: leave the screen laptop-sized instead of adding an unlit area */
+		if (hm && xcrtc) {
+			hw = (int)(hm->width * scale + 0.5);
+			hh = (int)(hm->height * scale + 0.5);
+		}
+	}
+	fw = ew + hw;
+	fh = eh > hh ? eh : hh;
+	XRRGetScreenSizeRange(dpy, root, &minw, &minh, &maxw, &maxh);
+	if (fw > maxw)
+		fw = maxw;
+	if (fh > maxh)
+		fh = maxh;
+	if (fw < minw)
+		fw = minw;
+	if (fh < minh)
+		fh = minh;
+	scrw = DisplayWidth(dpy, screen);
+	scrh = DisplayHeight(dpy, screen);
+	mmw = (int)lap->mm_width + (ext && hw ? (int)ext->mm_width : 0);
+	mmh = (int)lap->mm_height;
+	if (ext && hh && (int)ext->mm_height > mmh)
+		mmh = (int)ext->mm_height;
+	if (mmw < 1)
+		mmw = fw;
+	if (mmh < 1)
+		mmh = fh;
+	XSetErrorHandler(xerrordummy);
+	/* An unplugged panel keeps its CRTC lit: dwm would keep tiling an invisible
+	 * monitor, and its scale transform would keep the cursor in software. */
+	for (i = 0; i < res->ncrtc; i++) {
+		if (res->crtcs[i] == lcrtc || (hw && res->crtcs[i] == xcrtc))
+			continue;
+		ci = XRRGetCrtcInfo(dpy, res, res->crtcs[i]);
+		if (ci && ci->mode) {
+			XRRSetCrtcConfig(dpy, res, res->crtcs[i], CurrentTime, 0, 0, None, RR_Rotate_0, NULL, 0);
+			changed = 1;
+		}
+		if (ci)
+			XRRFreeCrtcInfo(ci);
+	}
+	if (fw > scrw || fh > scrh) {
+		XRRSetScreenSize(dpy, root, fw, fh, mmw, mmh);
+		changed = 1;
+	}
+	ci = XRRGetCrtcInfo(dpy, res, lcrtc);
+	if (ci && em && (ci->x != 0 || ci->y != 0 || ci->mode != em->id)) {
+		one = lid;
+		XRRSetCrtcConfig(dpy, res, lcrtc, CurrentTime, 0, 0, em->id, RR_Rotate_0, &one, 1);
+		changed = 1;
+	}
+	if (ci)
+		XRRFreeCrtcInfo(ci);
+	if (hw) {
+		XRRPanning *cur, pan;
+		int ok;
+
+		ci = XRRGetCrtcInfo(dpy, res, xcrtc);
+		ok = ci && ci->mode == hm->id && ci->x == ew && ci->y == 0 && scaledok(xcrtc, scale);
+		if (ci)
+			XRRFreeCrtcInfo(ci);
+		if (!ok) {
+			setscale(xcrtc, scale);
+			one = xid;
+			XRRSetCrtcConfig(dpy, res, xcrtc, CurrentTime, ew, 0, hm->id, RR_Rotate_0, &one, 1);
+			changed = 1;
+		}
+		/* Without panning the scaled panel goes black when a window opens. */
+		cur = XRRGetPanning(dpy, res, xcrtc);
+		if (!cur || cur->left != (unsigned)ew || cur->top != 0
+		|| cur->width != (unsigned)hw || cur->height != (unsigned)hh) {
+			memset(&pan, 0, sizeof pan);
+			pan.left = ew;
+			pan.top = 0;
+			pan.width = hw;
+			pan.height = hh;
+			pan.track_left = ew;
+			pan.track_top = 0;
+			pan.track_width = hw;
+			pan.track_height = hh;
+			XRRSetPanning(dpy, res, xcrtc, &pan);
+		}
+		if (cur)
+			XRRFreePanning(cur);
+	}
+	if (fw < scrw || fh < scrh) {
+		XRRSetScreenSize(dpy, root, fw, fh, mmw, mmh);
+		changed = 1;
+	}
+	if (changed || !warmed) {
+		setcrtcgamma(lcrtc);
+		if (hw)
+			setcrtcgamma(xcrtc);
+		warmed = 1;
+	}
+	XSync(dpy, False);
+	XSetErrorHandler(xerror);
+	if (changed || !rootdone)
+		setrootcolor();
+out:
+	plugged = (hw ? xid : 0) != lastxid;
+	lastxid = hw ? xid : 0;
+	if (lap)
+		XRRFreeOutputInfo(lap);
+	if (ext)
+		XRRFreeOutputInfo(ext);
+	XRRFreeScreenResources(res);
+	return plugged;
+}
+
+static void
+setrootcolor(void)
+{
+	XColor col, dummy;
+
+	if (!XAllocNamedColor(dpy, DefaultColormap(dpy, screen), rootbg, &col, &dummy))
+		return;
+	XSetWindowBackgroundPixmap(dpy, root, None);
+	XSetWindowBackground(dpy, root, col.pixel);
+	XClearWindow(dpy, root);
+	rootdone = 1;
+}
+
+static void
+screenchange(XEvent *e)
+{
+	XEvent ev;
+
+	if (e->type == rrbase + RRScreenChangeNotify)
+		XRRUpdateConfiguration(e);
+	/* one plug or modeset sends a burst of events: arrange once for all of them */
+	while (XCheckTypedEvent(dpy, rrbase + RRScreenChangeNotify, &ev))
+		XRRUpdateConfiguration(&ev);
+	while (XCheckTypedEvent(dpy, rrbase + RRNotify, &ev))
+		;
+	arrangemonitors();
+}
+
 void
 setup(void)
 {
@@ -1720,6 +2032,17 @@ setup(void)
 	grabkeys();
 	focus(NULL);
 	spawnstatus();
+	{
+		int ev, err;
+
+		if (XRRQueryExtension(dpy, &ev, &err)) {
+			rrbase = ev;
+			XRRSelectInput(dpy, root,
+				RRScreenChangeNotifyMask | RRCrtcChangeNotifyMask | RROutputChangeNotifyMask);
+		}
+	}
+	setrootcolor();
+	arrangemonitors();
 }
 
 void

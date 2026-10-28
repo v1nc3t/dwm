@@ -90,6 +90,16 @@ static const char *roficmd[] = { "rofi", "-show", "drun", "-theme", "/usr/share/
 static const char *shotsel[] = { "maim", "--select", NULL };
 static const char *shotfull[] = { "maim", NULL };
 
+/* empty desktop is this color. dwm fills the root window. no wallpaper program. */
+static const char rootbg[] = "#000000";
+/* laptop panel. Any other connected panel (HDMI or USB-C) is placed to its right.
+ * extrascale is text size on that panel: 1 native, lower is smaller.
+ * Anything but 1 makes X draw the pointer in software while that panel is
+ * plugged in, so the pointer can flicker over content that redraws. */
+static const char laptopout[] = "eDP-1";
+static const float extrascale = 0.75;
+static const int screentemp = 4000;
+
 /* same order as slstatus: mic, vol, brightness, cpu, ram, network, down, up, battery, date/time */
 /* brightness stays off the extra monitor's bar; the keys still change it */
 static const int statushide = 2;
