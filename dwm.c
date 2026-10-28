@@ -208,6 +208,7 @@ static void setmfact(const Arg *arg);
 static void setup(void);
 static void seturgent(Client *c, int urg);
 static void showhide(Client *c);
+static void shot(const Arg *arg);
 static void spawn(const Arg *arg);
 static void spawnstatus(void);
 static void tag(const Arg *arg);
@@ -1769,6 +1770,53 @@ spawnstatus(void)
 	sigaction(SIGCHLD, &sa, NULL);
 	execvp(statusscript[0], (char **)statusscript);
 	die("dwm: execvp '%s' failed:", statusscript[0]);
+}
+
+static void
+shot(const Arg *arg)
+{
+	int fd[2];
+	struct sigaction sa;
+	pid_t pid;
+
+	if (!arg || !arg->v || pipe(fd) < 0)
+		return;
+	pid = fork();
+	if (pid < 0) {
+		close(fd[0]);
+		close(fd[1]);
+		return;
+	}
+	if (pid == 0) {
+		if (dpy)
+			close(ConnectionNumber(dpy));
+		setsid();
+		sigemptyset(&sa.sa_mask);
+		sa.sa_flags = 0;
+		sa.sa_handler = SIG_DFL;
+		sigaction(SIGCHLD, &sa, NULL);
+		dup2(fd[1], STDOUT_FILENO);
+		close(fd[0]);
+		close(fd[1]);
+		execvp(((char **)arg->v)[0], (char **)arg->v);
+		_exit(127);
+	}
+	if (fork() == 0) {
+		if (dpy)
+			close(ConnectionNumber(dpy));
+		setsid();
+		sigemptyset(&sa.sa_mask);
+		sa.sa_flags = 0;
+		sa.sa_handler = SIG_DFL;
+		sigaction(SIGCHLD, &sa, NULL);
+		dup2(fd[0], STDIN_FILENO);
+		close(fd[0]);
+		close(fd[1]);
+		execlp("xclip", "xclip", "-selection", "clipboard", "-t", "image/png", (char *)NULL);
+		_exit(127);
+	}
+	close(fd[0]);
+	close(fd[1]);
 }
 
 void

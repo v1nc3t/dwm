@@ -87,6 +87,8 @@ static const char *brightupcmd[] = { "/usr/bin/brightnessctl", "set", "+5%", NUL
 static const char *netclick[] = { "qterminal", "-e", "nmtui", NULL };
 static const char *statusscript[] = { "/home/vincent/.config/slstatus/slstatus", NULL };
 static const char *roficmd[] = { "rofi", "-show", "drun", "-theme", "/usr/share/rofi/themes/gruvbox-dark.rasi", NULL };
+static const char *shotsel[] = { "maim", "--select", NULL };
+static const char *shotfull[] = { "maim", NULL };
 
 /* same order as slstatus: mic, vol, brightness, cpu, ram, network, down, up, battery, date/time */
 /* brightness stays off the extra monitor's bar; the keys still change it */
@@ -151,6 +153,8 @@ static const Key keys[] = {
 	{ MODKEY,                       XK_Left,   shiftview,      {.i = -1 } },
 	{ MODKEY,                       XK_Right,  shiftview,      {.i = +1 } },
 	{ MODKEY,                       XK_c,      spawn,          {.v = roficmd } },
+	{ MODKEY,                       XK_u,      shot,           {.v = shotsel } },
+	{ MODKEY|ControlMask,           XK_u,      shot,           {.v = shotfull } },
 	{ Mod1Mask,                     XK_w,      spawn,          {.v = firefoxcmd } },
 	{ Mod1Mask,                     XK_f,      spawn,          {.v = filecmd } },
 	{ Mod1Mask,                     XK_d,      spawn,          {.v = discordcmd } },
@@ -164,6 +168,7 @@ static const Key keys[] = {
 	{ 0,                            XF86XK_AudioMicMute,       spawn, {.v = miccmd } },
 	{ 0,                            XF86XK_MonBrightnessDown,  spawn, {.v = brightdowncmd } },
 	{ 0,                            XF86XK_MonBrightnessUp,    spawn, {.v = brightupcmd } },
+	{ 0,                            XK_Print,                  shot,  {.v = shotsel } },
 };
 
 /* button definitions */
