@@ -254,7 +254,6 @@ static pid_t statuspid;
 static int screen;
 static int rrbase;
 static int rootdone;
-static int warmed;
 static int sw, sh;           /* X display screen geometry width, height */
 static int bh;               /* bar height */
 static int lrpad;            /* sum of left and right padding for text */
@@ -1714,7 +1713,7 @@ setcrtcgamma(RRCrtc crtc)
 {
 	int size, i, r, g, b;
 	double t, rr, gg, bb, v;
-	XRRCrtcGamma *ga;
+	XRRCrtcGamma *ga, *cur;
 
 	if (screentemp <= 0 || !crtc)
 		return;
@@ -1741,7 +1740,14 @@ setcrtcgamma(RRCrtc crtc)
 		ga->green[i] = (unsigned short)(v * g / 255.0 * 65535);
 		ga->blue[i] = (unsigned short)(v * b / 255.0 * 65535);
 	}
-	XRRSetCrtcGamma(dpy, crtc, ga);
+	cur = XRRGetCrtcGamma(dpy, crtc);
+	if (!cur || cur->size != size
+	|| memcmp(cur->red, ga->red, size * sizeof *ga->red)
+	|| memcmp(cur->green, ga->green, size * sizeof *ga->green)
+	|| memcmp(cur->blue, ga->blue, size * sizeof *ga->blue))
+		XRRSetCrtcGamma(dpy, crtc, ga);
+	if (cur)
+		XRRFreeGamma(cur);
 	XRRFreeGamma(ga);
 }
 
@@ -1771,16 +1777,18 @@ setscale(RRCrtc crtc, double s)
 }
 
 /* Laptop at 0,0. Extra panel to its right, scaled from extrascale. Gamma from screentemp.
- * Returns 1 when the extra panel was plugged in, unplugged or swapped. */
+ * The layout is only set when the extra panel is plugged in, unplugged or swapped.
+ * Returns 1 when the lit extra panel changed. */
 static int
 arrangemonitors(void)
 {
-	static RROutput lastxid;
+	static RROutput lastxid, lastconn;
+	static int arranged;
 	XRRScreenResources *res;
 	XRROutputInfo *lap = NULL, *ext = NULL;
 	XRRCrtcInfo *ci;
 	XRRModeInfo *em, *hm = NULL;
-	RROutput lid = 0, xid = 0, one;
+	RROutput lid = 0, xid = 0, one, conn;
 	RRCrtc lcrtc, xcrtc = 0;
 	int i, ew = 0, eh = 0, hw = 0, hh = 0, fw, fh, minw, minh, maxw, maxh, changed = 0, plugged;
 	int scrw, scrh, mmw, mmh;
@@ -1824,6 +1832,13 @@ arrangemonitors(void)
 			hh = (int)(hm->height * scale + 0.5);
 		}
 	}
+	XSetErrorHandler(xerrordummy);
+	/* Changes made in a display tool such as arandr stay until the next plug. */
+	conn = ext ? xid : 0;
+	if (arranged && conn == lastconn)
+		goto warm;
+	arranged = 1;
+	lastconn = conn;
 	fw = ew + hw;
 	fh = eh > hh ? eh : hh;
 	XRRGetScreenSizeRange(dpy, root, &minw, &minh, &maxw, &maxh);
@@ -1845,7 +1860,6 @@ arrangemonitors(void)
 		mmw = fw;
 	if (mmh < 1)
 		mmh = fh;
-	XSetErrorHandler(xerrordummy);
 	/* An unplugged panel keeps its CRTC lit: dwm would keep tiling an invisible
 	 * monitor, and its scale transform would keep the cursor in software. */
 	for (i = 0; i < res->ncrtc; i++) {
@@ -1907,11 +1921,14 @@ arrangemonitors(void)
 		XRRSetScreenSize(dpy, root, fw, fh, mmw, mmh);
 		changed = 1;
 	}
-	if (changed || !warmed) {
-		setcrtcgamma(lcrtc);
-		if (hw)
-			setcrtcgamma(xcrtc);
-		warmed = 1;
+warm:
+	/* every lit panel, also one a display tool turned on */
+	for (i = 0; i < res->ncrtc; i++) {
+		ci = XRRGetCrtcInfo(dpy, res, res->crtcs[i]);
+		if (ci && ci->mode)
+			setcrtcgamma(res->crtcs[i]);
+		if (ci)
+			XRRFreeCrtcInfo(ci);
 	}
 	XSync(dpy, False);
 	XSetErrorHandler(xerror);
