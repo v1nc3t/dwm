@@ -1657,9 +1657,6 @@ spawn(const Arg *arg)
 	struct sigaction sa;
 	pid_t pid;
 
-	if (arg->v == dmenucmd)
-		snprintf(dmenumon, sizeof(dmenumon), "%d", selmon->num);
-
 	if ((pid = fork()) == -1) {
 		fprintf(stderr, "dwm: fork failed: %s\n", strerror(errno));
 		return;
