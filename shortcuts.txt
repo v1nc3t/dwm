@@ -6,7 +6,7 @@ Super+Enter              terminal (qterminal)
 Super+c                  application launcher (rofi)
 Super+u                  select a region and copy it to the clipboard
 Super+Ctrl+u             copy the whole screen to the clipboard
-Super+p                  display settings (arandr), same as F7
+Super+p                  swap between tile and floating, same as F7
 Super+l                  lock the screen, same as F10
 Alt+w                    Firefox
 Alt+f                    Thunar
@@ -60,7 +60,7 @@ F3                       volume up
 F4                       mute microphone
 F5                       brightness down
 F6                       brightness up
-F7                       display settings (arandr)
+F7                       swap between tile and floating
 F8                       airplane mode (kernel)
 F9                       next layout
 F10                      lock the screen

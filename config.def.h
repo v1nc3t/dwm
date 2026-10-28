@@ -89,7 +89,6 @@ static const char *statusscript[] = { "/home/vincent/.config/slstatus/slstatus",
 static const char *roficmd[] = { "rofi", "-show", "drun", "-theme", "/usr/share/rofi/themes/gruvbox-dark.rasi", NULL };
 static const char *shotsel[] = { "maim", "--select", NULL };
 static const char *shotfull[] = { "maim", NULL };
-static const char *displaycmd[] = { "arandr", NULL };
 static const char *lockcmd[] = { "dm-tool", "lock", NULL };
 static const char *calccmd[] = { "mate-calc", NULL };
 
@@ -183,7 +182,7 @@ static const Key keys[] = {
 	{ 0,                            XF86XK_AudioMicMute,       spawn, {.v = miccmd } },        /* F4 */
 	{ 0,                            XF86XK_MonBrightnessDown,  spawn, {.v = brightdowncmd } }, /* F5 */
 	{ 0,                            XF86XK_MonBrightnessUp,    spawn, {.v = brightupcmd } },   /* F6 */
-	{ MODKEY,                       XK_p,                      spawn, {.v = displaycmd } },    /* F7 */
+	{ MODKEY,                       XK_p,                      toggletilefloat, {0} },         /* F7 */
 	{ 0,                            XF86XK_Tools,              cyclelayout, {0} },             /* F9 */
 	{ MODKEY,                       XK_l,                      spawn, {.v = lockcmd } },       /* F10 */
 	{ 0,                            XF86XK_Calculator,         spawn, {.v = calccmd } },       /* F12 */

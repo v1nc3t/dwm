@@ -18,7 +18,7 @@ git log --oneline upstream/master..master
 - Each tag remembers its own master width.
 - Super+Left and Super+Right move to the previous or next tag.
 - Screenshots go to the clipboard (maim and xclip).
-- A second panel (HDMI or USB-C) is placed right of the laptop and scaled by `extrascale` when it is plugged in. Unplugging it turns that output off. Anything you change in arandr (F7) stays until the next plug.
+- A second panel (HDMI or USB-C) is placed right of the laptop and scaled by `extrascale` when it is plugged in. Unplugging it turns that output off. Anything you change in arandr (open it from rofi) stays until the next plug.
 - Every lit screen is warmed to 4000K (`screentemp`). No redshift needed.
 - Sound goes to the headphones if present, otherwise the laptop speakers, never the monitor.
 - The F row does its printed job on a plain press. Fn+F sends the real F key.
@@ -32,7 +32,7 @@ With Fn lock off (see `fnlock.rules`), a plain press does this:
 | Key | Does | The laptop sends |
 | --- | --- | --- |
 | F1 to F6 | mute, volume down, volume up, mic mute, brightness down, brightness up | XF86 media keys |
-| F7 | open arandr (display settings) | Super+p |
+| F7 | swap between tile and floating | Super+p |
 | F8 | airplane mode, handled by the kernel | the airplane key code |
 | F9 | next layout: tile, floating, monocle | XF86Tools |
 | F10 | lock the screen (`dm-tool lock`) | Super+l |
@@ -47,7 +47,7 @@ F7 and F10 send the same codes as typing Super+p and Super+l, so those two short
 - A C compiler and make
 - qterminal, rofi, maim, xclip
 - PipeWire (`wpctl`), brightnessctl, NetworkManager (`nmtui`), btop
-- arandr, mate-calc, LightDM (`dm-tool`)
+- mate-calc, LightDM (`dm-tool`), and arandr if you want a display settings app
 - JetBrainsMono Nerd Font, so the bar icons render
 - slstatus, built separately: [v1nc3t/slstatus](https://github.com/v1nc3t/slstatus)
 
